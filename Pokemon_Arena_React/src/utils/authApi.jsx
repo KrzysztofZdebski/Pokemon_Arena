@@ -34,7 +34,7 @@ async (error) => {
         if (csrfToken) {
             console.log('Access token expired, trying to refresh...');
             try {
-                const response = await axios.get("http://localhost:5000/auth/refresh",{
+                const response = await axios.get("http://localhost:5000/api/v1/auth/refresh",{
                     withCredentials: true, // include cookies in the request
                     headers: {
                         'X-CSRF-Token': csrfToken, // set CSRF token in header

@@ -17,7 +17,7 @@ function Login() {
             password: password
         };
 
-        axios.post("http://localhost:5000/auth/login", loginData, {
+        axios.post("http://localhost:5000/api/v1/auth/login", loginData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -40,7 +40,7 @@ function Login() {
         });
     }    return (
         <div className={`relative min-h-screen bg-gradient-to-br from-pokemon-blue to-pokemon-red`}>
-            <div className="container mx-auto px-6 py-12">
+            <div className="container px-6 py-12 mx-auto">
                 <div className="flex items-center justify-center pt-10">
                     <div className={`flex flex-col items-center w-full max-w-md p-8 bg-white/10 backdrop-blur-sm shadow-lg rounded-2xl border border-white/20`}>
                         <h2 className={`mb-6 text-3xl font-bold text-white`}>Login to Pokemon Arena</h2>                        <form className="flex flex-col w-full gap-4" onSubmit={loginUser}>
@@ -51,7 +51,7 @@ function Login() {
                                     id="username" 
                                     required 
                                     onChange={(event) => setUsername(event.target.value)}
-                                    className="px-4 py-2 transition border border-white/30 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-pokemon-yellow focus:border-transparent"
+                                    className="px-4 py-2 text-white transition border rounded-lg border-white/30 bg-white/20 placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-pokemon-yellow focus:border-transparent"
                                     placeholder="Enter your username"
                                 />
                             </div>
@@ -62,13 +62,13 @@ function Login() {
                                     id="password" 
                                     required 
                                     onChange={(event) => setPassword(event.target.value)}
-                                    className="px-4 py-2 transition border border-white/30 rounded-lg bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-pokemon-yellow focus:border-transparent"
+                                    className="px-4 py-2 text-white transition border rounded-lg border-white/30 bg-white/20 placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-pokemon-yellow focus:border-transparent"
                                     placeholder="Enter your password"
                                 />
                             </div>
                             <Button 
                                 type="submit" 
-                                className="btn-primary w-full mt-4"
+                                className="w-full mt-4 btn-primary"
                             >
                                 Login
                             </Button>
