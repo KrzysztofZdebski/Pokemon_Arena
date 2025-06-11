@@ -24,7 +24,7 @@ System trenowania -> po zapłaceniu trenujemy pokemona, w czasie treningu nie je
 trenowanie w walce
 
 Ograniczona liczba wykorzystania określonych umiejętności ataku pokemona , 
-pipi z pokemonów tylko zmniejszone 
+pp z pokemonów tylko zmniejszone 
 
 Osobny system rankingowy z odblokowywaniem kolejnych leveli 
 Do leveli będzie możliwosc odblokowywania kolejnych paczek itp. 
