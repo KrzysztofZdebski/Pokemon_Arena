@@ -1,20 +1,17 @@
 @import "tailwindcss";
 
-@import "tailwindcss/preflight";
-@tailwind utilities;
-
 /* Custom Pokemon Arena styles */
 @layer components {
   .pokemon-card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow;
+    @apply p-6 transition-shadow bg-white rounded-lg shadow-lg dark:bg-gray-800 hover:shadow-xl;
   }
   
   .btn-primary {
-    @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium;
+    @apply px-4 py-2 font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700;
   }
   
   .btn-secondary {
-    @apply bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium;
+    @apply px-4 py-2 font-medium text-white transition-colors bg-red-600 rounded-lg hover:bg-red-700;
   }
 }
 
