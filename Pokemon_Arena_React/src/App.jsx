@@ -4,7 +4,7 @@ import Home from './pages/Home'
 import Battle from './pages/Battle'
 import Pokemon from './pages/Pokemon'
 import About from './pages/About'
-import Login from './pages/LoginNew'
+import Login from './pages/Login'
 import './App.css'
 
 function App() {
