@@ -13,3 +13,4 @@ redis
 schedule
 requests
 flask-migrate
+dotenv
