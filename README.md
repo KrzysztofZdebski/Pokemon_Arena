@@ -1,7 +1,7 @@
 # Pokemon_Arena
 
 - front i backend oddzielnie
-- walki miedzy graczami odbywaja sie live przy pomocy websocketow
+- walki miedzy graczami odbywaja sie live przy pomocy websocketow (Krzysztof)
 - do walki gracze wystawiaja pokemony, ktore kupuja za punkty zdobyte podczas innych walk
 - to ile punktow sie wygrywa za walke jest do przemyslenia, bo byc moze gracze powinni stawiac swoje punkty, zamiast punktow plynacych z systemu
 - jesli punkty generuja sie z systemu no to wtedy za wygrana z duzo slabszym graczem powinna byc mniejsza wygrana
@@ -14,11 +14,11 @@
 Waluta -> poke dolary
 Na początku wybieramy pokemona z puli startowej pokemonów
 
-Kilka paczek/jajka z pokemonami, paczki są od najgorszych z gównem do lepszych z mniejszą ilością gówna, 
+Kilka paczek/jajka z pokemonami, paczki są od najgorszych z gównem do lepszych z mniejszą ilością gówna,  (Bartek)
 szansa wydropienia dobrego pokemona zwiększa się wraz z ceną paczki.
 paczki z itemkami.
 
-Punkty rankingowe.
+Punkty rankingowe.  (Mati)
 Punkty rankigowe przeliczają się na wielkość nagrody/poke dolary.
 System trenowania -> po zapłaceniu trenujemy pokemona, w czasie treningu nie jest dostępny, 
 trenowanie w walce
