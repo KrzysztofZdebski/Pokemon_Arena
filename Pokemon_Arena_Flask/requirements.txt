@@ -9,8 +9,6 @@ flask-jwt-extended
 uuid
 werkzeug
 cryptography
-redis
 schedule
 requests
 flask-migrate
-dotenv
