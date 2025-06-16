@@ -39,7 +39,8 @@ function Login() {
             alert("An error occurred. Please try again later.");
         });
     }    return (
-        <div className={`relative min-h-screen bg-gradient-to-br from-pokemon-blue to-pokemon-red`}>
+        <>
+        <div className={` min-h-screen bg-gradient-to-br from-pokemon-blue to-pokemon-red w-screen`}>
             <div className="container px-6 py-12 mx-auto">
                 <div className="flex items-center justify-center pt-10">
                     <div className={`flex flex-col items-center w-full max-w-md p-8 bg-white/10 backdrop-blur-sm shadow-lg rounded-2xl border border-white/20`}>
@@ -77,6 +78,7 @@ function Login() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
 

@@ -7,15 +7,16 @@ function Navbar() {
     return location.pathname === path
   }
 
-  return (
-    <nav className="border-b bg-white/10 backdrop-blur-sm border-white/20">
-      <div className="container px-6 mx-auto">
+  return (    
+  	<nav className="fixed inset-0 flex items-center justify-between w-full h-16 px-10 py-5">
+      <div className="container w-3/5 px-6 mx-auto bg-white">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="text-xl font-bold text-white">
+          <Link to="/" className="text-xl font-bold text-black">
             Pokemon Arena
           </Link>
           
-          <div className="flex space-x-8">
+          <div className="flex justify-center flex-1">
+            <div className="flex space-x-8">
             <Link
               to="/"
               className={`text-white hover:text-pokemon-yellow transition-colors ${
@@ -51,10 +52,10 @@ function Navbar() {
               to="/login"
               className={`text-white hover:text-pokemon-yellow transition-colors ${
                 isActive('/login') ? 'text-pokemon-yellow font-semibold' : ''
-              }`}
-            >
+              }`}            >
               Login
             </Link>
+            </div>
           </div>
         </div>
       </div>
