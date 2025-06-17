@@ -6,7 +6,6 @@ import Pokemon from './pages/Pokemon'
 import About from './pages/About'
 import Login from './pages/Login'
 import Account from './pages/Account'
-import './App.css'
 
 function App() {
   return (
