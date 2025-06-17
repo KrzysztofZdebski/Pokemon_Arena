@@ -12,7 +12,7 @@ function Navbar() {
       <div className="container justify-center w-4/5 h-20 mx-auto bg-menu-gray/0 max-w-7xl place-content-center">
         <div className="flex items-center justify-center mx-auto rounded-lg border-7 w-97/100 h-85/100 bg-menu-yellow border-menu-yellow">
           <div className="flex items-center justify-between w-full h-full px-4 rounded-md font-pokemon border-menu-white border-3 size-fit bg-menu-blue">
-            <Link to="/" className="text-4xl font-bold text-white">
+            <Link to="/" className="text-4xl font-bold text-white text-nowrap">
               Pokemon Arena
             </Link>
             
