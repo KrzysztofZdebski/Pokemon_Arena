@@ -1,7 +1,7 @@
 function About() {
   return (
     <>
-    <div className="w-screen min-h-screen bg-gradient-to-br from-purple-600 to-pokemon-blue">
+    <div className="w-screen min-h-screen max-w-screen bg-gradient-to-br from-purple-600 to-pokemon-blue">
       <div className="container px-6 py-12 mx-auto">
         <header className="mb-16 text-center">
           <h1 className="mb-6 text-5xl font-bold text-white">

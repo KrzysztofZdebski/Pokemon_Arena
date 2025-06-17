@@ -67,6 +67,20 @@
   .bg-menu-blue{
     background-color: #20425D;
   }
+  
+  .bg-striped-yellow {
+  background: repeating-linear-gradient(
+    to bottom,
+    #bb973e,           /* Main yellow */
+    #bb973e 16px,      /* Stripe thickness */
+    #c7a55b 16px,      /* Lighter stripe */
+    #c7a55b 24px       /* Stripe + gap thickness */
+  );
+}
+}
+
+html{
+  overflow-y: scroll;
 }
 
 :root {
@@ -76,7 +90,13 @@
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #063610;
+  background: repeating-linear-gradient(
+    to bottom,
+    #bb973e,           /* Main yellow */
+    #bb973e 24px,      /* Stripe thickness */
+    #c7a55b 10px,      /* Lighter stripe */
+    #c7a55b 30px       /* Stripe + gap thickness */
+  );
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
