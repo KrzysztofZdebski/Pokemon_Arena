@@ -4,7 +4,7 @@ function Home() {
   const [count, setCount] = useState(0)
 
   return (
-    <div className="flex justify-center w-screen">
+    <div className="flex justify-center w-screen my-20">
       <div className="space-y-4 ">
         <header className="mb-16 text-center">
           <h1 className="mb-6 text-5xl font-bold text-white">
