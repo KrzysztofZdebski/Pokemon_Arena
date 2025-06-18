@@ -13,11 +13,17 @@ def handle_message(data):
     print('request headers:', request.headers)
     print('request url:', request.url_root + 'api/v1/auth/login')
     user = get(request.url_root + 'api/v1/auth/login', headers=request.headers)
-    print(user.json())
 
 @socketio.on('connect')
 def test_connect(auth):
-    print('client connected')
+    vaildation = get(request.url_root + 'api/v1/auth/login', headers={"Authorization" : f"Bearer {auth["token"]}"})
+    if vaildation.status_code == 200:
+        print('Client connected:', vaildation.json())
+        emit('authSuccess', {'data': 'Connected successfully!'})
+    else:
+        print('Connection failed:', vaildation.json())
+        emit('authFail', {'data': 'Connection failed!'}, status=401)
+        return False
 
 @socketio.on('disconnect')
 def test_disconnect(reason):

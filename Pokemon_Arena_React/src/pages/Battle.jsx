@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useContext } from 'react';
+import { React, useState, useEffect, useContext, useRef } from 'react';
 // import { socket } from '../utils/socket';
 import { ConnectionState } from '../components/ConnectionState';
 import { ConnectionManager } from '../components/ConnectionManager';
@@ -15,27 +15,48 @@ const URL = 'http://localhost:5000'; // Replace with your server URL if needed
 function Battle() {
   const [isConnected, setIsConnected] = useState(false);
   const [fooEvents, setFooEvents] = useState([]);
-  const {isAuthenticated} = useContext(AuthContext);
+  const {isAuthenticated, authToken, triggerAuthCheck} = useContext(AuthContext);
   const [socket, setSocket] = useState(null);
+  const socketCreated = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      console.error("User is not authenticated. Cannot connect to socket.");
-      setSocket(null);
+    // Reset socket creation flag when auth changes
+    if (!isAuthenticated || !authToken) {
+      socketCreated.current = false;
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
       return;
     }
-    const newSocket = io(URL,{
+
+    // Only create socket once per auth session
+    if (socketCreated.current) {
+      console.log("Socket already created for this auth session");
+      return;
+    }
+
+    console.log("Creating new socket");
+    socketCreated.current = true;
+    
+    const newSocket = io(URL, {
         autoConnect: false,
         extraHeaders: {
-            "Authorization" : `Bearer ${localStorage.getItem('access_token')}`
+            "Authorization": `Bearer ${authToken}`
+        },
+        auth: {
+            token: authToken
         }
     });
+    
     setSocket(newSocket);
-  }, [isAuthenticated]);
+    newSocket.connect();
+  }, [isAuthenticated, authToken]);
 
   useEffect(() => {
     if (!socket) return;
     function onConnect() {
+      console.log("Connected to socket server");
       setIsConnected(true);
     }
 
@@ -47,16 +68,22 @@ function Battle() {
       setFooEvents(previous => [...previous, value]);
     }
 
+    function refresh() {
+      triggerAuthCheck();
+    }
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('foo', onFooEvent);
+    socket.on('connect_error', refresh);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('foo', onFooEvent);
+      socket.off('connect_error', refresh);
     };
-  }, [socket]);
+  }, [socket, triggerAuthCheck]);
 
   return (
     <>
