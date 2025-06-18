@@ -9,7 +9,7 @@ export function MyForm() {
     event.preventDefault();
     setIsLoading(true);
 
-    socket.timeout(5).emit('create-something', value, () => {
+    socket.emit('message', value, () => {
       setIsLoading(false);
     });
   }
