@@ -1,6 +1,5 @@
 import threading
 from flask import Flask, jsonify
-from app.modules.main.route import main_bp
 from app.db.db import db
 from app.extensions import cors, jwt, swagger
 from app.db.models import TokenBlocklist
@@ -8,9 +7,12 @@ from app.db.models import TokenBlocklist
 
 def initialize_route(app: Flask):
     with app.app_context():
+        from app.modules.main.route import main_bp
         from app.modules.auth.route import auth_bp
+        from app.modules.battles.route import battles_bp
         app.register_blueprint(main_bp, url_prefix='/api/v1/main')
         app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
+        app.register_blueprint(battles_bp, url_prefix='/api/v1/battles')
 
 
 def initialize_db(app: Flask):
@@ -101,3 +103,8 @@ def initialize_blocklist_cleanup(app: Flask):
     # Attach the stop method to the app for later use
     app.stop_scheduler = stop_scheduler
 
+def initialize_socketio(app: Flask):
+    from app.extensions import socketio
+    with app.app_context():
+        socketio.init_app(app)
+        return socketio

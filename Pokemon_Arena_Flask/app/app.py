@@ -1,6 +1,7 @@
 from flask import Flask
 from app.config.config import get_config_by_name
-from app.initialize_functions import initialize_route, initialize_db, initialize_swagger, initialize_blocklist_cleanup, initialize_cors, initialize_jwt
+from app.initialize_functions import initialize_route, initialize_db, initialize_swagger, initialize_blocklist_cleanup, initialize_cors, initialize_jwt, initialize_socketio
+import app.modules.battles.sockets  # Importing sockets to register them with SocketIO
 
 def create_app(config=None) -> Flask:
     """
@@ -22,5 +23,6 @@ def create_app(config=None) -> Flask:
     initialize_cors(app)
     initialize_jwt(app)
     initialize_blocklist_cleanup(app)
+    initialize_socketio(app)
 
     return app

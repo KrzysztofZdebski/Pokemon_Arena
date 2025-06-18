@@ -1,7 +1,41 @@
+import { React, useState, useEffect } from 'react';
+import { socket } from '../utils/socket';
+import { ConnectionState } from '../components/ConnectionState';
+import { ConnectionManager } from '../components/ConnectionManager';
+import { Events } from "../components/Events";
+import { MyForm } from '../components/MyForm';
+
 function Battle() {
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [fooEvents, setFooEvents] = useState([]);
+
+  useEffect(() => {
+    function onConnect() {
+      setIsConnected(true);
+    }
+
+    function onDisconnect() {
+      setIsConnected(false);
+    }
+
+    function onFooEvent(value) {
+      setFooEvents(previous => [...previous, value]);
+    }
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('foo', onFooEvent);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('foo', onFooEvent);
+    };
+  }, []);
+
   return (
     <>
-    <div className="w-screen min-h-screen bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
+    <div className="w-screen min-h-screen mt-20 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
       <div className="container px-6 py-12 mx-auto">
         <header className="mb-16 text-center">
           <h1 className="mb-6 text-5xl font-bold text-white">
@@ -36,6 +70,12 @@ function Battle() {
           </div>
         </main>
       </div>
+    </div>
+    <div className="App">
+      <ConnectionState isConnected={ isConnected } />
+      <Events events={ fooEvents } />
+      <ConnectionManager />
+      <MyForm />
     </div>
     </>
   )

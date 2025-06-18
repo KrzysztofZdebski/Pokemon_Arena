@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from app.app import create_app
 from werkzeug.serving import WSGIRequestHandler
+from app.extensions import socketio
 
 
 load_dotenv()
@@ -16,7 +17,8 @@ class CustomRequestHandler(WSGIRequestHandler):
 
 if __name__ == "__main__":
     if config == 'development':
-        app.run(debug=True, request_handler=CustomRequestHandler)
+        # app.run(debug=True, request_handler=CustomRequestHandler)
+        socketio.run(app, debug=True, request_handler=CustomRequestHandler)
     else:
         from werkzeug.serving import run_simple
         run_simple('0.0.0.0', 5000, app)
