@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./utils/ProtectedRoute";
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Battle from './pages/Battle'
@@ -17,7 +18,7 @@ function App() {
         <Route path="/pokemon" element={<Pokemon />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/account" element={<Account />} />
+        <Route path="/account" element={<ProtectedRoute> <Account /> </ProtectedRoute>} />
       </Routes>
     </Router>
   )

@@ -1,27 +1,29 @@
-import { createContext, useState, useEffect } from "react";
-import authApi from "./authApi"; // Adjust the import path as necessary
+import { createContext, useState, useEffect, useCallback } from "react";
+import authApi from "./authApi";
 
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
-    const [isAuthenticated, setAuthenticated] = useState(false);
-    const [refreshAuth, setRefreshAuth] = useState(false); // Add refresh state
+    // Initialize with localStorage check to prevent flicker
+    const [isAuthenticated, setAuthenticated] = useState(() => {
+        return localStorage.getItem('access_token') !== null;
+    });
+    const [refreshAuth, setRefreshAuth] = useState(false);
 
     useEffect(() => {
         authApi.get("/api/v1/auth/login")
         .then((response) => {
-            setAuthenticated(response.status === 200); // Set authenticated state based on the response
+            const isAuth = response.status === 200;
+            setAuthenticated(isAuth);
         })
         .catch(() => {
             setAuthenticated(false);
         })
-        .finally(() => {
-        });
-    }, [refreshAuth]); // Add refreshAuth to dependencies
+    }, [refreshAuth]);
 
-
-    // Expose setRefreshAuth so you can trigger a re-check from anywhere
-    const triggerAuthCheck = () => setRefreshAuth(prev => !prev);
+    const triggerAuthCheck = useCallback(() => {
+        setRefreshAuth(prev => !prev);
+    }, []);
 
     return (
         <AuthContext.Provider value={{ isAuthenticated, setAuthenticated, triggerAuthCheck }}>

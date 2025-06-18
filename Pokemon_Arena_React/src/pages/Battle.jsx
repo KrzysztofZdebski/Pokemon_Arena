@@ -1,15 +1,40 @@
-import { React, useState, useEffect } from 'react';
-import { socket } from '../utils/socket';
+import { React, useState, useEffect, useContext } from 'react';
+// import { socket } from '../utils/socket';
 import { ConnectionState } from '../components/ConnectionState';
 import { ConnectionManager } from '../components/ConnectionManager';
 import { Events } from "../components/Events";
 import { MyForm } from '../components/MyForm';
+import { io } from 'socket.io-client';
+import AuthContext from '../utils/authProvider';
+
+// const URL = process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3000';
+const URL = 'http://localhost:5000'; // Replace with your server URL if needed
+
+
 
 function Battle() {
-  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [isConnected, setIsConnected] = useState(false);
   const [fooEvents, setFooEvents] = useState([]);
+  const {isAuthenticated} = useContext(AuthContext);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      console.error("User is not authenticated. Cannot connect to socket.");
+      setSocket(null);
+      return;
+    }
+    const newSocket = io(URL,{
+        autoConnect: false,
+        extraHeaders: {
+            "Authorization" : `Bearer ${localStorage.getItem('access_token')}`
+        }
+    });
+    setSocket(newSocket);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!socket) return;
     function onConnect() {
       setIsConnected(true);
     }
@@ -31,7 +56,7 @@ function Battle() {
       socket.off('disconnect', onDisconnect);
       socket.off('foo', onFooEvent);
     };
-  }, []);
+  }, [socket]);
 
   return (
     <>
@@ -74,8 +99,8 @@ function Battle() {
     <div className="App">
       <ConnectionState isConnected={ isConnected } />
       <Events events={ fooEvents } />
-      <ConnectionManager />
-      <MyForm />
+      <ConnectionManager socket={socket}/>
+      <MyForm socket={socket}/>
     </div>
     </>
   )

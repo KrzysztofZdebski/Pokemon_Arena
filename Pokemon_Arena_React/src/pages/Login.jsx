@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../utils/authProvider.jsx"; // Import the AuthContext
 import Button from "../components/Button.jsx";
@@ -9,6 +9,8 @@ function Login() {
     const [password, setPassword] = useState("");
     const {setAuthenticated} = useContext(AuthContext);
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from?.pathname || "/account";
 
     function loginUser(event) {
         event.preventDefault(); 
@@ -26,10 +28,11 @@ function Login() {
         .then(response => {
             console.log(response);
             console.log(response.data); // Log the response to see its structure
-            if (response.status === 200) {                const newAccessToken = response.data.access_token;
+            if (response.status === 200) {
+                const newAccessToken = response.data.access_token;
                 localStorage.setItem('access_token', newAccessToken);
                 setAuthenticated(true); // Set the authenticated state to true
-                navigate("/account") // Redirect to the main page
+                navigate(from, { replace: true }); // Redirect to intended page
             } else {
                 alert("Login failed. Please check your credentials.");
             }

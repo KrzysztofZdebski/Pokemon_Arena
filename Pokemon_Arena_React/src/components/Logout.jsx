@@ -35,12 +35,14 @@ const Logout = () => {
         .then(response => {
             console.log(response.data); 
             console.log('logged out refresh token');
-            setAuthenticated(false); // Set the authenticated state to false
         })
         .catch(error => {
             console.error("There was an error logging out!", error);
             alert("An error occurred. Please try again later.");
-        });
+        })
+        .finally(() => {
+            setAuthenticated(false);
+        }); // Set authenticated state to false
         navigate('/'); // Redirect to the main page
 
     }

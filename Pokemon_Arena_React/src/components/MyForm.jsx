@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { socket } from '../utils/socket';
 
-export function MyForm() {
+export function MyForm({socket}) {
   const [value, setValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 

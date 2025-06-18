@@ -1,7 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
+import AuthContext from '../utils/authProvider'
+import React, { useContext } from 'react'
 
 function Navbar() {
-  const location = useLocation()
+  const location = useLocation();
+  const { isAuthenticated } = useContext(AuthContext);
 
   const isActive = (path) => {
     return location.pathname === path
@@ -53,14 +56,25 @@ function Navbar() {
                 <span className="mr-2 transition-opacity opacity-0 group-hover:opacity-100">▶</span>
                 About
               </Link>
-              <Link
+              { isAuthenticated ?
+                <Link
+                  to="/account"
+                  className={`group text-white text-xl hover:text-pokemon-yellow transition-colors ${
+                    isActive('/account') ? 'text-pokemon-yellow' : ''
+                  }`}
+                >
+                  <span className="mr-2 transition-opacity opacity-0 group-hover:opacity-100">▶</span>
+                  Account
+                </Link>
+                :
+                <Link
                 to="/login"
                 className={`group text-white text-xl hover:text-pokemon-yellow transition-colors ${
                   isActive('/login') ? 'text-pokemon-yellow' : ''
                 }`}            >
                 <span className="mr-2 transition-opacity opacity-0 group-hover:opacity-100">▶</span>
                 Login
-              </Link>
+              </Link>}
               </div>
               </div>
             </div>

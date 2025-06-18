@@ -1,7 +1,6 @@
 import React from 'react';
-import { socket } from '../utils/socket';
 
-export function ConnectionManager() {
+export function ConnectionManager({socket}) {
   function connect() {
     console.log('Connecting to socket...');
     socket.connect();
