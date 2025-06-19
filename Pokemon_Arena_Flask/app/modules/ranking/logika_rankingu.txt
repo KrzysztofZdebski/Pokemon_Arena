@@ -1,0 +1,17 @@
+| Level | Zakres punktów | Nazwa poziomu        |
+| ----- | -------------- | -------------------- |
+| 1     | 0 – 199        | Beginner             |
+| 2     | 200 – 399      | Trainer              |
+| 3     | 400 – 699      | Challenger           |
+| 4     | 700 – 999      | Veteran              |
+| 5     | 1000 – 1499    | Elite                |
+| 6     | 1500 – 1999    | Master               |
+| 7     | 2000+          | Legendary            |
+
+
+| Wynik walki                | Punkty dla Zwycięzcy | Punkty dla Przegranego |
+| -------------------------- | -------------------- | ---------------------- |
+| Zwycięstwo normalne        | +30                  | -15                    |
+| Zwycięstwo z silniejszym   | +50                  | -25                    |
+| Zwycięstwo z dużo słabszym | +10                  | -5                     |
+| Remis                      | +5                   | +5                     |
