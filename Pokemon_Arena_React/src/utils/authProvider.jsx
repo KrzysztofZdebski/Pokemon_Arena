@@ -9,8 +9,8 @@ export const AuthProvider = ({ children }) => {
     });
     const [refreshAuth, setRefreshAuth] = useState(false);
     const [authToken, setToken] = useState(localStorage.getItem('access_token'));
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
+    const [username, setGlobalUsername] = useState('');
+    const [email, setGlobalEmail] = useState('');
     
     // Add ref to track if auth check is in progress
     const authCheckInProgress = useRef(false);
@@ -27,8 +27,8 @@ export const AuthProvider = ({ children }) => {
             console.log("Auth check response:", response);
             setAuthenticated(isAuth);
             setToken(localStorage.getItem('access_token'));
-            setUsername(response.data.username || '');
-            setEmail(response.data.email || '');
+            setGlobalUsername(response.data.username || '');
+            setGlobalEmail(response.data.email || '');
         })
         .catch(() => {
             setAuthenticated(false);
@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, setAuthenticated, triggerAuthCheck, authToken, username, email }}>
+        <AuthContext.Provider value={{ isAuthenticated, setAuthenticated, triggerAuthCheck, authToken, username, email, setGlobalUsername, setGlobalEmail }}>
             {children}
         </AuthContext.Provider>
     );

@@ -6,6 +6,7 @@ import { Events } from "../components/Events";
 import { MyForm } from '../components/MyForm';
 import { io } from 'socket.io-client';
 import AuthContext from '../utils/authProvider';
+import { Chat } from '../components/Chat';
 
 // const URL = process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3000';
 const URL = 'http://localhost:5000'; // Replace with your server URL if needed
@@ -18,6 +19,7 @@ function Battle() {
   const {isAuthenticated, authToken, triggerAuthCheck} = useContext(AuthContext);
   const [socket, setSocket] = useState(null);
   const socketCreated = useRef(false);
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     // Reset socket creation flag when auth changes
@@ -76,11 +78,17 @@ function Battle() {
       console.log("Match found!");
     }
 
+    function reciveText(data) {
+      console.log("Received text:", data);
+      setMessages(prevMessages => [...prevMessages, data.message]);
+    }
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('foo', onFooEvent);
     socket.on('connect_error', refresh);
     socket.on('match_found', onMatchFound);
+    socket.on('receive_text', reciveText);
 
     return () => {
       socket.off('connect', onConnect);
@@ -88,6 +96,7 @@ function Battle() {
       socket.off('foo', onFooEvent);
       socket.off('connect_error', refresh);
       socket.off('match_found', onMatchFound);
+      socket.off('receive_text', reciveText);
     };
   }, [socket, triggerAuthCheck]);
 
@@ -134,6 +143,7 @@ function Battle() {
       <Events events={ fooEvents } />
       <ConnectionManager socket={socket}/>
       <MyForm socket={socket}/>
+      <Chat messages={messages} />
     </div>
     </>
   )

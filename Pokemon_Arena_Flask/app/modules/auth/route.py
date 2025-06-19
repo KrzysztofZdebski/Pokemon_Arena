@@ -41,6 +41,18 @@ def login():
         schema:
           type: object
           properties:
+            access_token:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            data:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: "user123"
+                email:
+                  type: string
+                  example: "example@gmail.com"
             message:
               type: string
               example: "Login successful!"

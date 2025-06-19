@@ -7,7 +7,7 @@ import Button from "../components/Button.jsx";
 function Login() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const {setAuthenticated} = useContext(AuthContext);
+    const {setAuthenticated, setGlobalEmail, setGlobalUsername} = useContext(AuthContext);
     const navigate = useNavigate();
     const location = useLocation();
     const from = location.state?.from?.pathname || "/account";
@@ -25,13 +25,15 @@ function Login() {
                 },
                 withCredentials: true
         })
-        .then(response => {
+        .then((response) => {
             console.log(response);
             console.log(response.data); // Log the response to see its structure
             if (response.status === 200) {
                 const newAccessToken = response.data.access_token;
                 localStorage.setItem('access_token', newAccessToken);
                 setAuthenticated(true); // Set the authenticated state to true
+                setGlobalUsername(response.data.data.username || ''); // Set username from response
+                setGlobalEmail(response.data.data.email || ''); // Set email from response
                 navigate(from, { replace: true }); // Redirect to intended page
             } else {
                 alert("Login failed. Please check your credentials.");

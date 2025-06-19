@@ -26,8 +26,12 @@ class AuthController:
         
         access_token = create_access_token(identity=user)
         refresh_token = create_refresh_token(identity=user)
+        user_data = {
+            'username': user.username,
+            'email': user.email,
+        }
 
-        response = jsonify(access_token=access_token, message='Login successful!')   
+        response = jsonify(access_token=access_token, data=user_data, message='Login successful!')   
         set_refresh_cookies(response, refresh_token)
         return response, 200
     

@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState,useContext } from 'react';
+import AuthContext from '../utils/authProvider';
 
 export function MyForm({socket}) {
   const [value, setValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const {username} = useContext(AuthContext);
 
   function onSubmit(event) {
     event.preventDefault();
     setIsLoading(true);
 
-    socket.emit('message', value, () => {
+    socket.emit('send_text', {"message" : value, "username" : username}, () => {
       setIsLoading(false);
     });
   }
