@@ -27,45 +27,44 @@
   .text-pokemon-red {
     color: #DC143C;
   }
-  
   .text-pokemon-blue {
     color: #4169E1;
   }
-  
   .text-pokemon-yellow {
     color: #FFD700;
   }
-  
   .bg-pokemon-red {
     background-color: #DC143C;
   }
-  
   .bg-pokemon-blue {
     background-color: #4169E1;
   }
-  
   .bg-pokemon-yellow {
     background-color: #FFD700;
   }
-
   .bg-menu-gray {
     background-color: #242d2d;
   }
-
   .border-menu-white{
     border-color: #C4C5CC;
   }
-
   .border-menu-yellow{
     border-color: #BB973E;
   }
-
   .bg-menu-yellow{
     background-color: #BB973E;
   }
-
   .bg-menu-blue{
     background-color: #20425D;
+  }
+  .bg-chat-tan{
+    background-color: #F8D8A0;
+  }
+  .border-chat-orange{
+    border-color: #F8B880;
+  }
+  .bg-chat-yellow{
+    background-color: #F8F8D0;
   }
   
   .bg-striped-yellow {

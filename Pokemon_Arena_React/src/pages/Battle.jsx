@@ -112,6 +112,8 @@ function Battle() {
             Challenge trainers and their Pokemon!
           </p>
         </header>
+        
+        <Chat messages={messages} className="h-96" />
 
         <main className="flex justify-center">
           <div className="max-w-2xl pokemon-card">
@@ -143,7 +145,6 @@ function Battle() {
       <Events events={ fooEvents } />
       <ConnectionManager socket={socket}/>
       <MyForm socket={socket}/>
-      <Chat messages={messages} />
     </div>
     </>
   )
