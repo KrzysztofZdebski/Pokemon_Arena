@@ -72,16 +72,22 @@ function Battle() {
       triggerAuthCheck();
     }
 
+    function onMatchFound(){
+      console.log("Match found!");
+    }
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('foo', onFooEvent);
     socket.on('connect_error', refresh);
+    socket.on('match_found', onMatchFound);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('foo', onFooEvent);
       socket.off('connect_error', refresh);
+      socket.off('match_found', onMatchFound);
     };
   }, [socket, triggerAuthCheck]);
 

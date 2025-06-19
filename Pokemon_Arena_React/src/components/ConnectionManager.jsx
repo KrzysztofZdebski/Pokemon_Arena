@@ -1,4 +1,8 @@
+import React, {useContext} from 'react';
+import AuthContext from '../utils/authProvider';
+
 export function ConnectionManager({socket}) {
+  const {username} = useContext(AuthContext);
 
   function connect() {
     if (!socket) {
@@ -18,10 +22,20 @@ export function ConnectionManager({socket}) {
     socket.disconnect();
   }
 
+  function joinQueue() {
+    if (!socket) {
+      console.log('No socket available to join queue');
+      return;
+    }
+    console.log('Joining queue...');
+    socket.emit('join_queue', {"username" : username});
+  }
+
   return (
     <>
       <button onClick={connect} disabled={!socket}>Connect</button>
       <button onClick={disconnect} disabled={!socket}>Disconnect</button>
+      <button onClick={joinQueue} disabled={!socket}>Join Queue</button>
     </>
   );
 }
