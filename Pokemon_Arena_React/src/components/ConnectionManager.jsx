@@ -2,7 +2,7 @@ import React, {useContext} from 'react';
 import AuthContext from '../utils/authProvider';
 
 export function ConnectionManager({socket}) {
-  const {username} = useContext(AuthContext);
+  const {username, authToken} = useContext(AuthContext);
 
   function connect() {
     if (!socket) {
@@ -10,7 +10,7 @@ export function ConnectionManager({socket}) {
       return;
     }
     console.log('Connecting to socket...');
-    socket.connect();
+    socket.connect(authToken);
   }
 
   function disconnect() {

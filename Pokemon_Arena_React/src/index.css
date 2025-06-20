@@ -33,6 +33,7 @@
   .text-pokemon-yellow {
     color: #FFD700;
   }
+
   .bg-pokemon-red {
     background-color: #DC143C;
   }
@@ -45,12 +46,6 @@
   .bg-menu-gray {
     background-color: #242d2d;
   }
-  .border-menu-white{
-    border-color: #C4C5CC;
-  }
-  .border-menu-yellow{
-    border-color: #BB973E;
-  }
   .bg-menu-yellow{
     background-color: #BB973E;
   }
@@ -60,11 +55,21 @@
   .bg-chat-tan{
     background-color: #F8D8A0;
   }
+  .bg-chat-yellow{
+    background-color: #F8F8D0;
+  }
+  .bg-chat-orange{
+    background-color: #F8B880;
+  }
+
   .border-chat-orange{
     border-color: #F8B880;
   }
-  .bg-chat-yellow{
-    background-color: #F8F8D0;
+  .border-menu-yellow{
+    border-color: #BB973E;
+  }
+  .border-menu-white{
+    border-color: #C4C5CC;
   }
   
   .bg-striped-yellow {
@@ -76,6 +81,17 @@
     #c7a55b 24px       /* Stripe + gap thickness */
   );
 }
+
+  .chat-send-button {
+    background-color: #F8D8A0 !important;
+    color: #000 !important;
+    transition: all 0.2s ease;
+  }
+  
+  .chat-send-button:hover {
+    background-color: #F8B880 !important;
+    color: #000 !important;
+  }
 }
 
 html{
@@ -121,7 +137,7 @@ h1 {
   line-height: 1.1;
 }
 
-button {
+/* button {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -138,9 +154,9 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
+} */
 
-@media (prefers-color-scheme: light) {
+/* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: #ffffff;
@@ -151,4 +167,4 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-}
+} */
