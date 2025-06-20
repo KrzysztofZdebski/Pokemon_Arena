@@ -13,8 +13,11 @@ class SocketService {
         onFooEvent: null,
         onRefresh: null,
         onMatchFound: null,
-        onReceiveText: null
+        onReceiveText: null,
+        onAuthFail: null
         };
+        console.log("SocketService initialized");
+        this.reconnectCtr = 0;
     }
 
     // Initialize with callbacks
@@ -67,6 +70,12 @@ class SocketService {
 
         this.socket.on('connect_error', (error) => {
         console.log("Connection error:", error);
+        if(error.message === 'auth_fail') {
+            console.error("Authentication failed. Refreshing token.");
+            if (this.callbacks.onAuthFail) {
+                this.callbacks.onAuthFail();
+            }
+        }
         if (this.callbacks.onRefresh) {
             this.callbacks.onRefresh();
         }
@@ -118,6 +127,11 @@ class SocketService {
 
     // Method to reconnect with new auth token
     reconnect(newAuthToken) {
+        if(this.reconnectCtr >= 10) {
+            console.error("Authorization refresh attempts exceeded. Disconnecting socket.");
+            this.disconnect();
+            return;
+        }
         this.disconnect();
         return this.connect(newAuthToken);
     }

@@ -7,6 +7,7 @@ import Pokemon from './pages/Pokemon'
 import About from './pages/About'
 import Login from './pages/Login'
 import Account from './pages/Account'
+import Combat from './pages/Combat'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Routes>
         <Route index element={<Home />} />
         <Route path="/battle" element={<Battle />} />
+        <Route path="/battle/:id" element={<Combat />} />
         <Route path="/pokemon" element={<Pokemon />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />

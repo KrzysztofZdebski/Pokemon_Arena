@@ -1,5 +1,5 @@
 from flask_jwt_extended import jwt_required, current_user
-from flask_socketio import emit, join_room, leave_room, rooms
+from flask_socketio import emit, join_room, leave_room, rooms, ConnectionRefusedError
 from app.extensions import socketio
 from flask import Flask, request
 from requests import get
@@ -18,11 +18,10 @@ def test_connect(auth):
     validation = get(request.url_root + 'api/v1/auth/login', headers={"Authorization" : f"Bearer {auth['token']}"})
     if validation.status_code == 200:
         print('Client connected:', validation.json())
-        emit('authSuccess', {'data': 'Connected successfully!'})
+        emit('auth_success', {'data': 'Connected successfully!'})
     else:
         print('Connection failed:', validation.json())
-        emit('authFail', {'data': 'Connection failed!'})
-        return False
+        raise ConnectionRefusedError('auth_fail')
 
 @socketio.on('disconnect')
 def test_disconnect(reason):

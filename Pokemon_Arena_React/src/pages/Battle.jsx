@@ -37,11 +37,13 @@ function Battle() {
       onConnect: () => setIsConnected(true),
       onDisconnect: () => setIsConnected(false),
       onFooEvent: (value) => setFooEvents(previous => [...previous, value]),
-      onRefresh: () => triggerAuthCheck(),
       onMatchFound: () => console.log("Match found! battlepage"),
       onReceiveText: (data) => {
         console.log("Received text battlepage:", data);
         setMessages(prevMessages => [...prevMessages, data.message]);
+      },
+      onAuthFail: () => {
+        triggerAuthCheck();
       }
     });
 
@@ -55,6 +57,10 @@ function Battle() {
       }
     };
   }, [isAuthenticated, authToken, triggerAuthCheck]);
+
+  useEffect(() => {
+    socketService.reconnect(authToken);
+  }, [authToken]);
 
   return (
     <>
