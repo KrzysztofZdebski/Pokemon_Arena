@@ -4,6 +4,8 @@ from app.modules.main.route import main_bp
 from app.db.db import db
 from app.extensions import cors, jwt, swagger
 from app.db.models import TokenBlocklist
+from app.modules.ranking.route import ranking_bp
+from app.modules.poke_training.route import pokemon_bp
 
 
 def initialize_route(app: Flask):
@@ -11,6 +13,8 @@ def initialize_route(app: Flask):
         from app.modules.auth.route import auth_bp
         app.register_blueprint(main_bp, url_prefix='/api/v1/main')
         app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
+        app.register_blueprint(ranking_bp, url_prefix='/api/v1/ranking')
+        app.register_blueprint(pokemon_bp, url_prefix='/api/v1/pokemon')
 
 
 def initialize_db(app: Flask):

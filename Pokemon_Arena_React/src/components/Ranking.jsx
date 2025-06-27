@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import authApi from '../utils/authApi';
+
 
 function Ranking() {
   const [ranking, setRanking] = useState([]);
@@ -7,21 +8,8 @@ function Ranking() {
 
   useEffect(() => {
     const fetchRanking = async () => {
-      const token = localStorage.getItem("access_token");
-
-      if (!token) {
-        console.error("Brak tokena JWT. Użytkownik nie jest zalogowany.");
-        setLoading(false);
-        return;
-      }
-
       try {
-        const response = await axios.get("http://localhost:5000/ranking", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
+        const response = await authApi.get("/ranking"); 
         setRanking(response.data);
       } catch (error) {
         console.error("Błąd podczas pobierania rankingu:", error);
@@ -54,4 +42,6 @@ function Ranking() {
     </div>
   );
 }
+
 export default Ranking;
+

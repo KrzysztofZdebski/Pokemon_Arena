@@ -7,7 +7,7 @@ from app.db.models import db
 class RankingController:
 
     @staticmethod #pobiranie ranikingu uzytkownika do wyświetlenia na stronie profilu
-    @jwt_required()
+    # @jwt_required()
     def get_user_ranking():
         user_id= get_jwt_identity()
         user=User.query.get(user_id)
