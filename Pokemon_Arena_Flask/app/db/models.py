@@ -26,6 +26,19 @@ class User(db.Model):
 
     def set_ranking(self, points):
         self.points = points
+
+    def get_coins(self):
+        return self.coins
+
+    def add_coins(self, amount):
+        self.coins += amount
+
+    def set_coins(self, amount):
+        self.coins = amount
+
+    def remove_coins(self, amount):
+        self.coins = max(self.coins - amount, 0)
+
      
     def __repr__(self):
         return f'<User {self.username}>'

@@ -40,7 +40,7 @@ def get_user_ranking():
 @jwt_required()
 def set_mock_points():
     """
-    Ustawia przykładową liczbę punktów dla zalogowanego użytkownika.
+    Ustawia przykładową liczbę punktów oraz pieniędzy dla zalogowanego użytkownika.
     ---
     tags:
       - Ranking
@@ -59,18 +59,24 @@ def set_mock_points():
             points:
               type: integer
               example: 1234
+            coins:
+              type: integer
+              example: 250
     responses:
       200:
-        description: Points set successfully!
+        description: Points and coins set successfully!
         schema:
           type: object
           properties:
             message:
               type: string
-              example: "Points set successfully!"
+              example: "Points and coins set successfully!"
             points:
               type: integer
               example: 1234
+            coins:
+              type: integer
+              example: 250
       404:
         description: User not found
         schema:
@@ -82,8 +88,9 @@ def set_mock_points():
     """
     data = request.get_json()
     points = data.get('points')
-    result = rankingController.set_user_points(points)
-    return result
+    coins = data.get('coins')
+    return rankingController.set_user_points_and_coins(points=points, coins=coins)
+
 
 
 

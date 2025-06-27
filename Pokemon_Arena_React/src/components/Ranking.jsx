@@ -41,6 +41,9 @@ function Ranking() {
         <span className="text-lg font-[PokemonFont] text-pokemon-red">
           Poziom: {userRanking.level}
         </span>
+        <span className='text-lg font-[PokemonFont] text-green-700'>
+          Poke Dolars {userRanking.coins}
+          </span>
       </div>
     </div>
   );

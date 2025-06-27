@@ -8,37 +8,49 @@ class RankingController:
 
     @staticmethod #pobiranie ranikingu uzytkownika do wyświetlenia na stronie profilu
     def get_user_ranking():
-        user_id= get_jwt_identity()
-        user=User.query.get(user_id)
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
 
         if user is None:
             return jsonify({'message': 'User not found!'}), 404
-        
+
         ranking = user.get_ranking()
         level = RankingController.get_player_level(ranking)
+        coins = user.get_coins()
         return jsonify({
             'ranking': ranking,
-            'level': level
-            }), 200
+            'level': level,
+            'coins': coins          
+        }), 200
     
 
-    @staticmethod # przeliczanie rankingu użytkownika po walce
-    def update_after_battle(winner_id,loser_id):
-        winner_idUser = User.query.get(winner_id)
-        loser_idUser = User.query.get(loser_id)
-        if winner_idUser is None or loser_idUser is None:
+    @staticmethod
+    def update_after_battle(winner_id, loser_id):
+        winner = User.query.get(winner_id)
+        loser = User.query.get(loser_id)
+        if winner is None or loser is None:
             return jsonify({'message': 'User not found!'}), 404
-        
-        winn_change, loser_change = RankingController.calculate_points(
-            winner_idUser.get_ranking(), loser_idUser.get_ranking()
+
+        winner_change, loser_change = RankingController.calculate_points(
+            winner.get_ranking(), loser.get_ranking()
         )
-        winner_idUser.update_ranking(winn_change)
-        loser_idUser.update_ranking(loser_change)
+        winner.update_ranking(winner_change)
+        loser.update_ranking(loser_change)
+
+ 
+        coins_per_point = 10
+        if winner_change > 0:
+            winner.add_coins(winner_change * coins_per_point)
+        if loser_change < 0:
+            loser.remove_coins(abs(loser_change) * coins_per_point)
+
         db.session.commit()
         return jsonify({
             'message': 'Ranking updated successfully!',
-            'winner_new_ranking': winner_idUser.get_ranking(),
-            'looser_new_ranking': loser_idUser.get_ranking()
+            'winner_new_ranking': winner.get_ranking(),
+            'winner_new_coins': winner.get_coins(),           
+            'loser_new_ranking': loser.get_ranking(),
+            'loser_new_coins': loser.get_coins()              
         }), 200
 
 
@@ -87,14 +99,22 @@ class RankingController:
         return jsonify({'message': 'Mock ranking inserted successfully!'}), 200
     
     @staticmethod
-    def set_user_points(points):
+    def set_user_points_and_coins(points=None, coins=None):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         if user is None:
             return jsonify({'message': 'User not found!'}), 404
-        user.set_ranking(points)  
+
+        if points is not None:
+            user.set_ranking(points)
+        if coins is not None:
+            user.set_coins(coins)
         db.session.commit()
-        return jsonify({'message': 'Points set successfully!', 'points': points}), 200
+        return jsonify({'message': 'Points and coins set successfully!', 'points': user.points, 'coins': user.coins}), 200
+
+        
+
+
 
     
 
