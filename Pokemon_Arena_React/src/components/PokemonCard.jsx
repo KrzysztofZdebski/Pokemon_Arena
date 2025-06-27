@@ -1,5 +1,15 @@
 import React from "react";
 
+function getTypeString(pokemon) {
+  // Jeśli masz pokemon.type (string), użyj go
+  if (pokemon.type) return pokemon.type;
+  // Jeśli masz tablicę types z PokeAPI, wyświetl wszystkie typy
+  if (pokemon.types && Array.isArray(pokemon.types)) {
+    return pokemon.types.map(t => t.type?.name).join("/");
+  }
+  return "";
+}
+
 function PokemonCard({
   pokemon,
   isTraining,
@@ -21,10 +31,10 @@ function PokemonCard({
       </div>
       <div className="mb-4">
         <p className="text-gray-600 dark:text-gray-300">
-          Type: {pokemon.type}
+          Type: {getTypeString(pokemon)}
         </p>
       </div>
-      {isTraining && (
+      {isTraining && secondsLeft > 0 && (
         <div className="mb-4 text-center">
           <span className="text-gray-500 font-bold">
             Trenuje... {secondsLeft}s
@@ -48,3 +58,4 @@ function PokemonCard({
 }
 
 export default PokemonCard;
+

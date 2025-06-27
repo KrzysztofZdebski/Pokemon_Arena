@@ -7,7 +7,7 @@ function Pokemon() {
   const [loading, setLoading] = useState(true);
   const [trainingStatus, setTrainingStatus] = useState({});
 
-  // Uniwersalna funkcja do pobierania pokemonów
+  // uniwersalna funkcja do ładowania pokemonów
   const fetchPokemons = async () => {
     setLoading(true);
     try {
@@ -20,34 +20,55 @@ function Pokemon() {
     }
   };
 
-  // Automatyczne pobranie przy starcie
+  // automwayczne pobieranie pokemonów 
   useEffect(() => {
     fetchPokemons();
   }, []);
 
-  // Funkcja do trenowania z wyborem leveli
-  const handleTrain = async (id) => {
-    const levelsStr = prompt("Ile poziomów chcesz wytrenować dla tego pokemona?", "1");
-    const levels = parseInt(levelsStr, 10);
-    if (isNaN(levels) || levels < 1) return; // jeśli anulowano lub błędnie wpisano
-    try {
-      const response = await authApi.post("/api/v1/pokemon/train", {
-        pokemon_id: id,
-        duration_minutes: 10,
-        levels, // <-- PRZEKAZUJESZ DO BACKENDU!
-      });
-      const { end_time } = response.data;
-      setTrainingStatus((prev) => ({
-        ...prev,
-        [id]: new Date(end_time).getTime(),
-      }));
-    } catch (err) {
-      alert(
-        err.response?.data?.error ||
-          "Nie udało się wysłać pokemona na trening."
-      );
-    }
-  };
+  // trenowanie i wybór leveli
+const handleTrain = async (id) => {
+  const levelsStr = prompt("Ile poziomów chcesz wytrenować dla tego pokemona?", "1");
+  const levels = parseInt(levelsStr, 10);
+  if (isNaN(levels) || levels < 1) return;
+
+  // pobieranie kosztu treningu
+  let costInfo;
+  try {
+    costInfo = await authApi.post("/api/v1/pokemon/training_cost", {
+      pokemon_id: id,
+      duration_minutes: 10,
+      levels
+    });
+  } catch {
+    alert("Nie udało się pobrać kosztu treningu!");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Trening na ${levels} poziom(y) zajmie ${costInfo.data.total_minutes} minut i będzie kosztował ${costInfo.data.cost} monet. Kontynuować?`
+  );
+  if (!confirmed) return;
+
+  // wysyłanie pokemona na trening
+  try {
+    const response = await authApi.post("/api/v1/pokemon/train", {
+      pokemon_id: id,
+      duration_minutes: 10,
+      levels,
+    });
+    const { end_time } = response.data;
+    setTrainingStatus((prev) => ({
+      ...prev,
+      [id]: new Date(end_time).getTime(),
+    }));
+  } catch (err) {
+    alert(
+      err.response?.data?.error ||
+        "Nie udało się wysłać pokemona na trening."
+    );
+  }
+};
+
 
   const isTraining = (id) =>
     trainingStatus[id] && trainingStatus[id] > Date.now();

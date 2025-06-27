@@ -213,3 +213,46 @@ def train():
         return jsonify({"error": "Invalid input data"}), 400
 
     return pokemoncontroller.start_training(pokemon_id, user_id, duration, levels)
+
+
+@pokemon_bp.route('/training_cost', methods=['POST'])
+@jwt_required()
+def get_training_cost():
+    """
+    Wylicza koszt treningu dla wybranego pokemona i liczby poziomów.
+    ---
+    tags:
+      - Pokémon
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            pokemon_id:
+              type: integer
+              example: 5
+            duration_minutes:
+              type: integer
+              default: 10
+            levels:
+              type: integer
+              default: 1
+    responses:
+      200:
+        description: Koszt treningu
+    """
+    data = request.get_json() or {}
+    duration = int(data.get('duration_minutes', 10))
+    levels = int(data.get('levels', 1))
+    from app.modules.poke_training.controller import PokemonController
+    total_duration = duration * levels
+    cost = total_duration * PokemonController.COST_PER_MINUTE
+    return jsonify({
+        "cost": cost,
+        "total_minutes": total_duration,
+        "levels": levels
+    }), 200
