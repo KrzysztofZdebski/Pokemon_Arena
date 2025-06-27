@@ -108,6 +108,7 @@ class Pokemon(db.Model):
 
     is_training = db.Column(db.Boolean, default=False)
     training_end_time = db.Column(db.DateTime, nullable=True)
+    training_levels = db.Column(db.Integer, default=1)   
 
     def to_dict(self):
         return {

@@ -9,81 +9,45 @@ from app.db.models import Pokemon
 pokemon_bp = Blueprint('pokemon', __name__)
 pokemoncontroller = PokemonController()
 
-@pokemon_bp.route('/train', methods=['POST'])
-@jwt_required()
-@swag_from({
-    'tags': ['Pokémon'],
-    'parameters': [
-        {
-            'name': 'body',
-            'in': 'body',
-            'required': True,
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'pokemon_id': {'type': 'integer'},
-                    'duration_minutes': {'type': 'integer', 'default': 30}
-                },
-                'required': ['pokemon_id']
-            }
-        }
-    ],
-    'responses': {
-        200: {
-            'description': 'Training started',
-        },
-        400: {'description': 'Invalid input data'},
-        401: {'description': 'Unauthorized'},
-        404: {'description': 'Not found'},
-        402: {'description': 'Not enough Poké Dollars'}
-    }
-})
-def train():
-    """
-    Start training a Pokémon
-    ---
-    """
-    data = request.get_json()
-    try:
-        user_id = current_user.id  
-        pokemon_id = int(data.get('pokemon_id'))
-        duration = int(data.get('duration_minutes', 30))
-    except (TypeError, ValueError, AttributeError):
-        return jsonify({"error": "Invalid input data"}), 400
-
-    return pokemoncontroller.start_training(pokemon_id, user_id, duration)
-
 @pokemon_bp.route('/status', methods=['GET'])
 @jwt_required()
-@swag_from({
-    'tags': ['Pokémon'],
-    'parameters': [
-        {
-            'name': 'pokemon_id',
-            'in': 'query',
-            'type': 'integer',
-            'required': True
-        }
-    ],
-    'responses': {
-        200: {'description': 'Status returned'},
-        400: {'description': 'Invalid query parameters'},
-        401: {'description': 'Unauthorized'},
-        404: {'description': 'Not found'}
-    }
-})
 def status():
     """
-    Get status of a Pokémon
+    Zwraca status treningu wybranego Pokémona.
     ---
+    tags:
+      - Pokémon
+    security:
+      - Bearer: []
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        description: Token JWT (w formacie Bearer <twój_token>)
+      - in: query
+        name: pokemon_id
+        type: integer
+        required: true
+        description: ID pokemona
+    responses:
+      200:
+        description: Status returned
+      400:
+        description: Invalid query parameters
+      401:
+        description: Unauthorized
+      404:
+        description: Pokemon not found
     """
     try:
-        user_id = current_user.id  
+        user_id = current_user.id
         pokemon_id = int(request.args.get('pokemon_id'))
     except (TypeError, ValueError, AttributeError):
         return jsonify({"error": "Invalid query parameters"}), 400
 
     return pokemoncontroller.get_pokemon_status(user_id, pokemon_id)
+
 
 
 
@@ -172,17 +136,80 @@ def get_user_pokemons():
       - Pokémon
     security:
       - Bearer: []
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        description: Token JWT (w formacie Bearer <twój_token>)
     responses:
       200:
         description: Lista pokemonów użytkownika
-        schema:
-          type: array
-          items:
-            type: object
+      404:
+        description: User not found
     """
     user = current_user
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    pokemons = user.pokemons  
+    pokemons = user.pokemons
     return jsonify([p.to_dict() for p in pokemons]), 200
+
+
+@pokemon_bp.route('/train', methods=['POST'])
+@jwt_required()
+def train():
+    """
+    Rozpoczyna trening wybranego Pokémona o wybraną liczbę poziomów.
+    ---
+    tags:
+      - Pokémon
+    security:
+      - Bearer: []
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        description: Token JWT (w formacie Bearer <twój_token>)
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            pokemon_id:
+              type: integer
+              example: 5
+            duration_minutes:
+              type: integer
+              default: 30
+              example: 15
+            levels:
+              type: integer
+              default: 1
+              example: 3
+          required:
+            - pokemon_id
+    responses:
+      200:
+        description: Training started
+      400:
+        description: Invalid input data
+      401:
+        description: Unauthorized
+      404:
+        description: Pokemon or User not found
+      402:
+        description: Not enough Poké Dollars
+    """
+    data = request.get_json() or {}
+    try:
+        user_id = current_user.id
+        pokemon_id = int(data.get('pokemon_id'))
+        duration = int(data.get('duration_minutes', 30))
+        levels = int(data.get('levels', 1))
+    except (TypeError, ValueError, AttributeError):
+        return jsonify({"error": "Invalid input data"}), 400
+
+    return pokemoncontroller.start_training(pokemon_id, user_id, duration, levels)

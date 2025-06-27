@@ -5,7 +5,7 @@ from app.db.models import User, Pokemon
 from app.db.models import db
 
 class PokemonController:
-    COST_PER_MINUTE = 50  # Koszt treningu za minutę
+    COST_PER_MINUTE = 50  # koszt treningu za minutę
 
     @staticmethod
     def fetch_base_stats(pokemon_name):
@@ -19,9 +19,9 @@ class PokemonController:
             "attack": stats.get("attack", 0),
             "defense": stats.get("defense", 0)
         }
-
+    
     @staticmethod
-    def start_training(pokemon_id, user_id, duration_minutes):
+    def start_training(pokemon_id, user_id, duration_minutes, levels=1):
         pokemon = Pokemon.query.filter_by(id=pokemon_id, owner_id=user_id).first()
         user = User.query.filter_by(id=user_id).first()
 
@@ -34,24 +34,27 @@ class PokemonController:
         if pokemon.is_training:
             return jsonify({"error": "Pokemon is already in training"}), 400
 
-        cost = duration_minutes * PokemonController.COST_PER_MINUTE
-        if user.balance < cost:
+        total_duration = duration_minutes * levels
+        cost = total_duration * PokemonController.COST_PER_MINUTE
+
+        if user.coins < cost:
             return jsonify({
                 "error": "Not enough Poké Dollars",
                 "required": cost,
-                "balance": user.balance
+                "balance": user.coins
             }), 402
 
-        user.balance -= cost
+        user.coins -= cost
         pokemon.is_training = True
-        pokemon.training_end_time = datetime.utcnow() + timedelta(minutes=duration_minutes)
+        pokemon.training_end_time = datetime.utcnow() + timedelta(minutes=total_duration)
+        pokemon.training_levels = levels  # <------
         db.session.commit()
         return jsonify({
-            "message": "Training started",
+            "message": f"Training for {levels} level(s) started",
             "pokemon": pokemon.name,
             "end_time": pokemon.training_end_time,
             "cost": cost,
-            "user_balance": user.balance
+            "user_coins": user.coins
         }), 200
 
     @staticmethod
@@ -66,12 +69,14 @@ class PokemonController:
             base_hp = stat_map.get("hp", 0)
             base_attack = stat_map.get("attack", 0)
             base_defense = stat_map.get("defense", 0)
-            pokemon.level += 1
-            pokemon.hp += round(base_hp / 50)
-            pokemon.attack += round(base_attack / 50)
-            pokemon.defense += round(base_defense / 50)
+            levels_up = getattr(pokemon, "training_levels", 1)  # <------ NOWE!
+            pokemon.level += levels_up
+            pokemon.hp += round(base_hp / 50) * levels_up
+            pokemon.attack += round(base_attack / 50) * levels_up
+            pokemon.defense += round(base_defense / 50) * levels_up
             pokemon.is_training = False
             pokemon.training_end_time = None
+            pokemon.training_levels = 1  # resetuj po zakończonym treningu
             db.session.commit()
 
         return jsonify({
@@ -84,3 +89,4 @@ class PokemonController:
             "attack": pokemon.attack,
             "defense": pokemon.defense,
         }), 200
+
