@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from "react";
 import authApi from '../utils/authApi';
 
-
 function Ranking() {
-  const [ranking, setRanking] = useState([]);
+  const [userRanking, setUserRanking] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRanking = async () => {
       try {
-        const response = await authApi.get("/ranking"); 
-        setRanking(response.data);
+        const response = await authApi.get("api/v1/ranking/");
+        setUserRanking(response.data);
       } catch (error) {
-        console.error("Błąd podczas pobierania rankingu:", error);
+        setUserRanking(null);
       } finally {
         setLoading(false);
       }
@@ -21,27 +20,34 @@ function Ranking() {
     fetchRanking();
   }, []);
 
-  if (loading) return <p className="text-white">Ładowanie rankingu...</p>;
+  if (loading) return (
+    <div className="w-full flex justify-center">
+      <p className="text-white font-[PokemonFont] text-lg">Ładowanie rankingu...</p>
+    </div>
+  );
+
+  if (!userRanking)
+    return (
+      <div className="w-full flex justify-center">
+        <p className="text-white font-[PokemonFont] text-lg">Nie udało się pobrać rankingu.</p>
+      </div>
+    );
 
   return (
-    <div className="mt-6">
-      <h3 className="mb-4 text-xl font-bold text-white">Top Trainers</h3>
-      <ul className="text-white space-y-2">
-        {ranking.map((user, index) => (
-          <li
-            key={user.username}
-            className="flex justify-between px-4 py-2 bg-white/10 rounded-lg"
-          >
-            <span>
-              {index + 1}. {user.username}
-            </span>
-            <span>{user.score} pts</span>
-          </li>
-        ))}
-      </ul>
+    <div className="w-full flex justify-center">
+      <div className="bg-menu-yellow bg-opacity-90 rounded-xl p-6 border-2 border-menu-blue flex flex-col items-center w-72">
+        <span className="text-xl font-[PokemonFont] text-pokemon-blue mb-2">Punkty rankingowe</span>
+        <span className="text-3xl font-[PokemonFont] text-white mb-2">{userRanking.ranking}</span>
+        <span className="text-lg font-[PokemonFont] text-pokemon-red">
+          Poziom: {userRanking.level}
+        </span>
+      </div>
     </div>
   );
 }
 
 export default Ranking;
+
+
+
 

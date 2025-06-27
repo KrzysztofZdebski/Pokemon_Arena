@@ -7,7 +7,6 @@ from app.db.models import db
 class RankingController:
 
     @staticmethod #pobiranie ranikingu uzytkownika do wyświetlenia na stronie profilu
-    # @jwt_required()
     def get_user_ranking():
         user_id= get_jwt_identity()
         user=User.query.get(user_id)
@@ -64,16 +63,17 @@ class RankingController:
         return 'Unknown Level'
     
     @staticmethod #przeliczanie punktów w odniesieniu do różnicy punktowej pomiędzy graczami
-    def calculate_points(winers_points, lossers_points):
-        difference = winers_points - lossers_points
-        if difference >200:
-            return 10,-8
-        elif difference > 50:
-            return 15,-8
-        elif difference > -100:
-            return 20,-10
-        else :
-            return 30,-10
+    def calculate_points(winners_points, losers_points, result='win'):
+        if result == 'draw':
+            return 5, 5
+        difference = winners_points - losers_points
+        if difference < -100:  
+            return 50, -25
+        elif difference > 100: 
+            return 10, -5
+        else:                  
+            return 30, -15
+
     
     @staticmethod #wstawianie mockowych danych do rankingu
     def insert_mock_ranking():
@@ -85,6 +85,17 @@ class RankingController:
         user.update_ranking(1000)
         db.session.commit()
         return jsonify({'message': 'Mock ranking inserted successfully!'}), 200
+    
+    @staticmethod
+    def set_user_points(points):
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if user is None:
+            return jsonify({'message': 'User not found!'}), 404
+        user.set_ranking(points)  
+        db.session.commit()
+        return jsonify({'message': 'Points set successfully!', 'points': points}), 200
+
     
 
 

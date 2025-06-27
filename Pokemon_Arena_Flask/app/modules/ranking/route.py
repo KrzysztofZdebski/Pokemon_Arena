@@ -14,6 +14,8 @@ def get_user_ranking():
     ---
     tags:
       - Ranking
+    security:
+      - Bearer: []
     responses:
       200:
         description: User ranking retrieved successfully
@@ -32,54 +34,57 @@ def get_user_ranking():
           type: object
     """
     result = rankingController.get_user_ranking()
-    return result 
+    return result
 
 @ranking_bp.route('/mock', methods=['POST'])
 @jwt_required()
-@swag_from({
-    'tags': ['Ranking'],
-    'description': 'Ustawia przykładową liczbę punktów dla zalogowanego użytkownika.',
-    'parameters': [
-        {
-            'name': 'body',
-            'in': 'body',
-            'required': True,
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'points': {
-                        'type': 'integer',
-                        'example': 1234
-                    }
-                },
-                'required': ['points']
-            }
-        }
-    ],
-    'responses': {
-        200: {
-            'description': 'Points set successfully!',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'message': {'type': 'string'},
-                    'points': {'type': 'integer'}
-                }
-            }
-        },
-        404: {
-            'description': 'User not found'
-        }
-    }
-})
 def set_mock_points():
     """
     Ustawia przykładową liczbę punktów dla zalogowanego użytkownika.
+    ---
+    tags:
+      - Ranking
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        description: Token JWT (w formacie Bearer <twój_token>)
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            points:
+              type: integer
+              example: 1234
+    responses:
+      200:
+        description: Points set successfully!
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Points set successfully!"
+            points:
+              type: integer
+              example: 1234
+      404:
+        description: User not found
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "User not found!"
     """
     data = request.get_json()
     points = data.get('points')
     result = rankingController.set_user_points(points)
     return result
+
 
 
 

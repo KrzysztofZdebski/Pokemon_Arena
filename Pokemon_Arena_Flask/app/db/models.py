@@ -23,6 +23,9 @@ class User(db.Model):
     
     def update_ranking(self, change):
         self.points+=change
+
+    def set_ranking(self, points):
+        self.points = points
      
     def __repr__(self):
         return f'<User {self.username}>'
