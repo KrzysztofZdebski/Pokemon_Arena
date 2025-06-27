@@ -14,6 +14,7 @@ class User(db.Model):
     username = mapped_column(sa.String(255), unique=True, nullable=True)
     password = mapped_column(sa.String(255), nullable=False) 
     points = mapped_column(sa.Integer, default=0)  
+    coins=db.Column(db.Integer, default=0)  
 
     pokemons = db.relationship('Pokemon', back_populates='owner', cascade="all, delete-orphan")
 
