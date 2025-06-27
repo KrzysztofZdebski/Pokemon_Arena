@@ -8,6 +8,7 @@ import About from './pages/About'
 import Login from './pages/Login'
 import Account from './pages/Account'
 import Combat from './pages/Combat'
+import Pokeballs from "./pages/Pokeballs";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/account" element={<ProtectedRoute> <Account /> </ProtectedRoute>} />
+        <Route path="/pokeballs" element={<Pokeballs />} />
       </Routes>
     </Router>
   )

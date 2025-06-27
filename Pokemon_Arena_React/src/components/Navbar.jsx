@@ -47,6 +47,14 @@ function Navbar() {
               >
                 <span className="mr-2 transition-opacity opacity-0 group-hover:opacity-100">▶</span>
                 Pokemon
+              </Link>
+              <Link 
+                to="/pokeballs"
+                className={`group text-white text-xl hover:text-pokemon-yellow transition-colors ${
+                  isActive('/pokeballs') ? 'text-pokemon-yellow' : ''
+                }`}>
+                  <span className="mr-2 transition-opacity opacity-0 group-hover:opacity-100">▶</span>
+                Pokeballs
               </Link>            <Link
                 to="/about"
                 className={`group text-white text-xl hover:text-pokemon-yellow transition-colors ${
@@ -74,7 +82,8 @@ function Navbar() {
                 }`}            >
                 <span className="mr-2 transition-opacity opacity-0 group-hover:opacity-100">▶</span>
                 Login
-              </Link>}
+              </Link>
+              }
               </div>
               </div>
             </div>
