@@ -102,7 +102,7 @@ class Pokemon(db.Model):
     types = db.Column(db.JSON)
 
 
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    owner_id = db.Column(db.String(), db.ForeignKey('user.id'), nullable=True)
     owner = db.relationship("User", back_populates="pokemons")
 
 
