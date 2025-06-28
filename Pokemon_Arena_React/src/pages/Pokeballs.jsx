@@ -28,9 +28,20 @@ function calculateScore(stats){
         return Math.round(sum+val);
     },0);
 }
+function getCatchProbability(pokemonList){
+    const k = 0.015;
+    const weights = pokemonList.map(poke => Math.exp(-k*poke.score));
+    const sumWeights = weights.reduce((a, b) => a + b, 0);
+    return pokemonList.map((poke,index)=>({
+        ...poke,
+        catchProbability:weights[index]/sumWeights
+    }));
+}
+
 function Pokeballs() {
     const [pokemonList, setPokemonList] = useState([]);
     const [loading, setLoading] = useState(true);
+   
 
     useEffect(() => {
         // Fetch list of first N Pokémon (can be paginated/extended)
@@ -38,7 +49,7 @@ function Pokeballs() {
         setLoading(true);
         try {
             // Fetch 20 for demo; you can increase this number
-            const resp = await fetch(`${POKEAPI_BASE}/pokemon?limit=200 && {POKEAPI_BASE}/generation/${'Generation I'}`);
+            const resp = await fetch(`${POKEAPI_BASE}/pokemon?limit=200`);
             const data = await resp.json();
             // Fetch details for each pokemon
             const details = await Promise.all(
@@ -61,7 +72,10 @@ function Pokeballs() {
                     return null;
                 })
             );
-            setPokemonList(details.filter((d) => d));
+            const filteredDetails = details.filter(poke => poke);
+            const catchProbabilities = getCatchProbability(filteredDetails);
+            setPokemonList(catchProbabilities.sort((a,b) => a.score - b.score));
+            
         } catch (err) {
             console.error("Failed to fetch Pokémon:", err);
         } finally {
@@ -71,50 +85,53 @@ function Pokeballs() {
         fetchBaseEvoPokemons();
     }, []);
 
-    return (
-        <div style={{ padding: 25 }}>
+  return (
+    <div style={{ padding: 25 }}>
         <h1>Pokémon Stat Scores</h1>
         {loading ? (
             <div>Loading Pokémon...</div>
         ) : (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-                <tr>
-                <th>Sprite</th>
-                <th>Name</th>
-                <th>Stats</th>
-                <th>Score</th>
-                </tr>
-            </thead>
-            <tbody>
-                {pokemonList.map((poke) => (
-                <tr key={poke.name} style={{ borderBottom: "1px solid #ccc" }}>
-                    <td>
-                    <img src={poke.sprite} alt={poke.name} />
-                    </td>
-                    <td>{poke.name}</td>
-                    <td>
-                    {poke.stats
-                        .map(
-                        (s) =>{
-                            const statStr = `${s.stat.name.replace("-", " ")}: ${s.base_stat}`;
-                            if(s.stat.name == 'speed'){
-                                return statStr + ' | ⚡️'; 
-                            }
-                            return statStr
-                        }
-                        )
-                        .join(", ")}
-                    </td>
-                    <td>
-                        <p> {poke.score}</p>
-                    </td>
-                </tr>
-                ))}
-            </tbody>
+                <thead>
+                    <tr>
+                        <th>Sprite</th>
+                        <th>Name</th>
+                        <th>Stats</th>
+                        <th>Score</th>
+                        <th>Catch Probability</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {pokemonList.map((poke) => (
+                        <tr key={poke.name} style={{ borderBottom: "1px solid #ccc" }}>
+                            <td>
+                                <img src={poke.sprite} alt={poke.name} />
+                            </td>
+                            <td>{poke.name}</td>
+                            <td>
+                                {poke.stats
+                                    .map((s) => {
+                                        const statStr = `${s.stat.name.replace("-", " ")}: ${s.base_stat}`;
+                                        if (s.stat.name == 'speed') {
+                                            return statStr + ' | ⚡️';
+                                        }
+                                        return statStr;
+                                    })
+                                    .join(", ")}
+                            </td>
+                            <td>
+                                <p>{poke.score}</p>
+                            </td>
+                            <td>
+                                <p>{(poke.catchProbability * 100).toFixed(4)}%</p>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
             </table>
         )}
-        </div>
+        <button>Draw a Pokemon</button>
+    </div>
     );
 }
 export default Pokeballs;
