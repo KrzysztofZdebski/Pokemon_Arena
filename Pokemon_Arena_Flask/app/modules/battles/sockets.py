@@ -29,9 +29,15 @@ def test_disconnect(reason):
     # Clean up player from queues when they disconnect
     userID = request.sid
     userID_to_remove = None
-    for userID, room_id in active_players.items():
-        if request.sid == socketio.server.get_session(request.sid).get('userID'):
-            userID_to_remove = userID
+    for uid, room_id in active_players.items():
+        if uid == userID:
+            userID_to_remove = uid
+            leave_room(room_id)
+            print(f'User {uid} left room {room_id}')
+            for opp_uid, opp_room_id in active_players.items():
+                if opp_uid != userID and opp_room_id == room_id:
+                    # Notify opponent that the player has left
+                    emit('opponent_left', {'message': f'Player {userID} has left the game'}, to=opp_uid)
             break
     
     if userID_to_remove:
@@ -86,6 +92,7 @@ def join_queue(data):
             'players': [opponent_userID, userID],
             'message': 'Match found! Get ready to battle!'
         }, to=room_id)
+        match_setup(room_id, opponent_userID, userID)
 
 @socketio.on('send_text')
 def send_text(data):
@@ -100,9 +107,35 @@ def send_text(data):
     print(f'Sending message to room {room_id}: {message}')
     emit('receive_text', {'message': {"text" : message, "username" : username}}, to=room_id)
 
+@socketio.on('pokemon')
+def choose_pokemon(data):
+    room_id = active_players.get(request.sid)
+    pokemon = data.get('pokemon')
+    
+    if not room_id or not pokemon:
+        emit('error', {'message': 'Room ID and pokemon are required'})
+        return
+    
+    print(f'Player {request.sid} chose pokemon: {pokemon}')
+    
+    # Emit to the room that the player has chosen a pokemon
+    emit('pokemon_chosen', {
+        'message': f'Player {request.sid} chose {pokemon}',
+        'player_id': request.sid,
+        'pokemon': pokemon
+    }, to=room_id)
+    
+    # Here you can add logic to handle the chosen pokemon, like starting the battle
+
 def generate_room_id():
     import uuid
     return str(uuid.uuid4())
 
 def find_opponent():
     return waiting_players.popitem()
+
+def match_setup(room_id, player1_id, player2_id):
+    emit('choose_pokemon', {
+        'message': 'Send chosen pokemon',
+    }, to=room_id)
+    
