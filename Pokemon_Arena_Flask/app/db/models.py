@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
     __tablename__ = 'user'
-    id = mapped_column(sa.String(), primary_key=True, default=str(uuid4()))
+    id = mapped_column(sa.String(), primary_key=True, default=lambda: str(uuid4()))
     email = mapped_column(sa.String(255), unique=True)
     username = mapped_column(sa.String(255), unique=True, nullable=True)
     password = mapped_column(sa.String(255), nullable=False) 
