@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import ProtectedRoute from "./utils/ProtectedRoute";
+import ProtectedRoute from "./utils/protectedRoute";
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Battle from './pages/Battle'

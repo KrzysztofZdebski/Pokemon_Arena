@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useContext, useRef } from 'react';
+import { React, useEffect, useContext, useRef } from 'react';
 import { ConnectionState } from '../components/ConnectionState';
 import { ConnectionManager } from '../components/ConnectionManager';
 import { Events } from "../components/Events";
@@ -6,20 +6,17 @@ import { MyForm } from '../components/MyForm';
 import AuthContext from '../utils/authProvider';
 import { Chat } from '../components/Chat';
 import socketService from '../utils/socketService';
+import { useNavigate } from 'react-router-dom';
 
 function Battle() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [fooEvents, setFooEvents] = useState([]);
-  const { isAuthenticated, authToken, triggerAuthCheck } = useContext(AuthContext);
+  const { isAuthenticated, authToken, triggerAuthCheck, username } = useContext(AuthContext);
   const socketInitialized = useRef(false);
-  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     // Reset when auth changes
     if (!isAuthenticated || !authToken) {
       socketInitialized.current = false;
       socketService.disconnect();
-      setIsConnected(false);
       return;
     }
 
@@ -34,16 +31,16 @@ function Battle() {
 
     // Initialize socket service with callbacks
     socketService.initialize({
-      onConnect: () => setIsConnected(true),
-      onDisconnect: () => setIsConnected(false),
-      onFooEvent: (value) => setFooEvents(previous => [...previous, value]),
-      onMatchFound: () => console.log("Match found! battlepage"),
-      onReceiveText: (data) => {
-        console.log("Received text battlepage:", data);
-        setMessages(prevMessages => [...prevMessages, data.message]);
+      onMatchFound: (data) => {
+        console.log("Match found, navigating to battle page");
+        navigate(`/battle/${data.room_id}`);
       },
       onAuthFail: () => {
         triggerAuthCheck();
+      },
+      onOpponentLeft: (data) => {
+        console.log("Opponent left the game:", data);
+        navigate('/battle');
       }
     });
 
@@ -62,6 +59,8 @@ function Battle() {
     socketService.reconnect(authToken);
   }, [authToken]);
 
+  const navigate = useNavigate();
+
   return (
     <>
       <div className="w-screen min-h-screen mt-20 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
@@ -75,13 +74,13 @@ function Battle() {
             </p>
           </header>
           
-          <Chat messages={messages} className="mb-10 h-96" socket={socketService} />
+          {/* <Chat messages={messages} className="mb-10 h-96" socket={socketService} /> */}
 
           <main className="flex justify-center">
             <div className="max-w-2xl pokemon-card">
               <h2 className="mb-6 text-2xl font-semibold text-center">Choose Your Battle</h2>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="p-6 text-white transition-shadow rounded-lg shadow-lg cursor-pointer bg-gradient-to-r from-red-500 to-red-600 hover:shadow-xl">
+                <div className="p-6 text-white transition-shadow rounded-lg shadow-lg cursor-pointer bg-gradient-to-r from-red-500 to-red-600 hover:shadow-xl" onClick={() => socketService.emit('join_queue', {"username" : username})}>
                   <h3 className="mb-2 text-xl font-bold">Quick Battle</h3>
                   <p>Jump into a random battle with any Pokemon!</p>
                 </div>
@@ -103,10 +102,10 @@ function Battle() {
         </div>
       </div>
       <div className="App">
-        <ConnectionState isConnected={isConnected} />
-        <Events events={fooEvents} />
-        <ConnectionManager socket={socketService} />
-        <MyForm socket={socketService} />
+        {/* <ConnectionState isConnected={isConnected} /> */}
+        {/* <Events events={fooEvents} /> */}
+        {/* <ConnectionManager socket={socketService} /> */}
+        {/* <MyForm socket={socketService} /> */}
       </div>
     </>
   )

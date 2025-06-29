@@ -8,16 +8,17 @@ class SocketService {
         this.isConnected = false;
         this.authToken = null;
         this.callbacks = {
-        onConnect: null,
-        onDisconnect: null,
-        onFooEvent: null,
-        onRefresh: null,
-        onMatchFound: null,
-        onReceiveText: null,
-        onAuthFail: null
+            onConnect: null,
+            onDisconnect: null,
+            onFooEvent: null,
+            onRefresh: null,
+            onMatchFound: null,
+            onReceiveText: null,
+            onAuthFail: null
         };
-        console.log("SocketService initialized");
+        console.log("SocketService constructor");
         this.reconnectCtr = 0;
+        this.messageQueue = []; // Add message queue
     }
 
     // Initialize with callbacks
@@ -53,11 +54,15 @@ class SocketService {
 
         // Connection events
         this.socket.on('connect', () => {
-        console.log("Connected to socket server");
-        this.isConnected = true;
-        if (this.callbacks.onConnect) {
-            this.callbacks.onConnect();
-        }
+            console.log("Connected to socket server");
+            this.isConnected = true;
+            
+            // Process queued messages when connected
+            this.processMessageQueue();
+            
+            if (this.callbacks.onConnect) {
+                this.callbacks.onConnect();
+            }
         });
 
         this.socket.on('disconnect', () => {
@@ -88,10 +93,10 @@ class SocketService {
         }
         });
 
-        this.socket.on('match_found', () => {
+        this.socket.on('match_found', (data) => {
         console.log("Match found! socketService");
         if (this.callbacks.onMatchFound) {
-            this.callbacks.onMatchFound();
+            this.callbacks.onMatchFound(data);
         }
         });
 
@@ -101,27 +106,107 @@ class SocketService {
             this.callbacks.onReceiveText(data);
         }
         });
+
+        this.socket.on('opponent_left', (data) => {
+            console.log("Opponent left the game:", data);
+            // Handle opponent left event, e.g., show a message or redirect
+            if (this.callbacks.onOpponentLeft) {
+                this.callbacks.onOpponentLeft(data);
+            }
+            this.disconnect();
+        });
+    }
+
+    // Process queued messages when connection is established
+    processMessageQueue() {
+        while (this.messageQueue.length > 0) {
+            const { event, data, resolve, reject } = this.messageQueue.shift();
+            try {
+                this.socket.emit(event, data);
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        }
+    }
+
+    // Method to emit events with waiting and timeout
+    emit(event, data, waitForConnection = true, timeoutMs = 20000) {
+        return new Promise((resolve, reject) => {
+            // If socket is connected, emit immediately
+            if (this.socket && this.socket.connected) {
+                try {
+                    this.socket.emit(event, data);
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+                return;
+            }
+
+            // If not waiting for connection, reject immediately
+            if (!waitForConnection) {
+                reject(new Error("Socket not connected. Cannot emit: " + event));
+                return;
+            }
+
+            // Queue the message with timeout
+            const timeoutId = setTimeout(() => {
+                // Remove from queue if timeout occurs
+                const index = this.messageQueue.findIndex(item => 
+                    item.event === event && item.data === data
+                );
+                if (index !== -1) {
+                    this.messageQueue.splice(index, 1);
+                }
+                reject(new Error(`Timeout waiting for connection to emit: ${event}`));
+            }, timeoutMs);
+
+            // Add to queue
+            this.messageQueue.push({
+                event,
+                data,
+                resolve: () => {
+                    clearTimeout(timeoutId);
+                    resolve();
+                },
+                reject: (error) => {
+                    clearTimeout(timeoutId);
+                    reject(error);
+                }
+            });
+
+            console.log(`Queued message: ${event}. Waiting for connection...`);
+        });
+    }
+
+    // Alternative method for immediate emit (old behavior)
+    emitImmediate(event, data) {
+        if (this.socket && this.socket.connected) {
+            this.socket.emit(event, data);
+            return true;
+        } else {
+            console.warn("Socket not connected. Cannot emit:", event);
+            return false;
+        }
     }
 
     disconnect() {
         if (this.socket) {
-        if (this.callbacks.onDisconnect) {
-            this.callbacks.onDisconnect();
-        }
-        this.socket.removeAllListeners();
-        this.socket.disconnect();
-        this.socket = null;
-        this.isConnected = false;
-        this.authToken = null;
-        }
-    }
+            // Clear message queue on disconnect
+            this.messageQueue.forEach(({ reject }) => {
+                reject(new Error("Socket disconnected before message could be sent"));
+            });
+            this.messageQueue = [];
 
-    // Method to emit events
-    emit(event, data) {
-        if (this.socket && this.socket.connected) {
-        this.socket.emit(event, data);
-        } else {
-        console.warn("Socket not connected. Cannot emit:", event);
+            if (this.callbacks.onDisconnect) {
+                this.callbacks.onDisconnect();
+            }
+            this.socket.removeAllListeners();
+            this.socket.disconnect();
+            this.socket = null;
+            this.isConnected = false;
+            this.authToken = null;
         }
     }
 
