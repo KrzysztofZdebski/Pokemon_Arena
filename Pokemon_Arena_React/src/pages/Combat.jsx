@@ -3,10 +3,33 @@ import { useParams } from "react-router-dom";
 import socketService from "../utils/socketService";
 import { Chat } from "../components/Chat";
 import BattleUI from "../components/BattleUI";
+import authApi from "../utils/authApi";
+import PokemonCard from "../components/PokemonCard";
 
 export default function Combat() {
     const { id } = useParams();
     const [messages, setMessages] = useState([]);
+    const [InBattle, setInBattle] = useState(false);
+    const [pokemons, setPokemons] = useState([]);
+    const [selectedPokemons, setSelectedPokemons] = useState([]);
+    const [isReady, setIsReady] = useState(false);
+
+
+    // uniwersalna funkcja do ładowania pokemonów
+    const fetchPokemons = async () => {
+        try {
+        const res = await authApi.get("/api/v1/pokemon/user");
+        setPokemons(res.data);
+        } catch (err) {
+        console.error("Failed to fetch pokemons:", err);
+        setPokemons([]);
+        }
+    };
+
+    // automwayczne pobieranie pokemonów 
+    useEffect(() => {
+        fetchPokemons();
+    }, []);
 
     useEffect(() => {
         if (!id) {
@@ -19,18 +42,73 @@ export default function Combat() {
         }
         socketService.updateCallbacks({
             onReceiveText: (data) => {
-            console.log("Received text combat page:", data);
-            setMessages(prevMessages => [...prevMessages, data.message]);
-        },
+                console.log("Received text combat page:", data);
+                setMessages(prevMessages => [...prevMessages, data.message]);
+            },
+            onBattleStart: (data) => {
+                console.log("Battle started:", data);
+                setInBattle(true);
+            },
         });
     }, [id, messages]);
 
+    useEffect(() => {
+        console.log(selectedPokemons);
+    }, [selectedPokemons]);
+
+    const choosePokemon = (id) => {
+        if (selectedPokemons.length >= 6) {
+            alert("You can only choose 6 pokemons for the battle.");
+            return;
+        }
+        if (selectedPokemons.includes(id)) {
+            setSelectedPokemons(selectedPokemons.filter(pokemonId => pokemonId !== id));
+            return;
+        }
+        setSelectedPokemons([...selectedPokemons, id]);
+    }
+
+    const ready = () => {
+        if (isReady) {
+            socketService.emit("not_ready", { battleId: id });
+            setIsReady(false);
+            return;
+        }
+        if (selectedPokemons.length < 1) {
+            alert("You must select at least one pokemon to start the battle.");
+            return;
+        }
+        socketService.emit("ready", { battleId: id, pokemons: selectedPokemons })
+        setIsReady(true);
+    }
+
+
     return (
         <div className="w-screen min-h-screen mt-20 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
-        <div className="flex flex-row items-center justify-center h-full p-4 mx-auto w-7/10">
-            <BattleUI battleId={id} socket={socketService} className="w-3/5"/>
-            <Chat messages={messages} className="w-2/5 h-150" socket={socketService} />
-        </div>
+        { InBattle ?
+            <div className="flex flex-row items-center justify-center h-full p-4 mx-auto w-7/10">
+                <BattleUI battleId={id} socket={socketService} className="w-3/5" pokemons={selectedPokemons}/>
+                <Chat messages={messages} className="w-2/5 h-150" socket={socketService} />
+            </div> :
+            <>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {pokemons.map((pokemon) => (
+                <PokemonCard
+                    key={pokemon.id}
+                    pokemon={pokemon}
+                    disabled={false}
+                    buttonType="battle"
+                    onChoose={choosePokemon}
+                />
+                ))}
+            </div>
+            <button
+                className={`px-4 py-2 mt-4 text-lg font-semibold text-white rounded-lg ${isReady ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+                onClick={ready}>
+                {isReady ? "Ready ✔" : "Not Ready ✕"}
+            </button>
+            </>
+        }
         </div>
     );
 }

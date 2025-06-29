@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 function getTypeString(pokemon) {
   // Jeśli masz pokemon.type (string), użyj go
@@ -16,7 +16,11 @@ function PokemonCard({
   secondsLeft,
   onTrain,
   disabled,
+  buttonType,
+  onChoose,
 }) {
+  const [chosen, setChosen] = useState(false);
+
   return (
     <div
       className={`pokemon-card transition ${
@@ -36,19 +40,30 @@ function PokemonCard({
       </div>
       {isTraining && secondsLeft > 0 && (
         <div className="mb-4 text-center">
-          <span className="text-gray-500 font-bold">
+          <span className="font-bold text-gray-500">
             Trenuje... {secondsLeft}s
           </span>
         </div>
       )}
       <div className="flex space-x-2">
+        {buttonType === "train" ?
         <button
           className="flex-1 btn-primary"
           onClick={() => onTrain(pokemon.id)}
           disabled={isTraining || disabled}
         >
           Trenuj
-        </button>
+        </button> :
+        <button
+          className="flex-1 btn-primary"
+          onClick={() => {
+            setChosen(!chosen);
+            onChoose(pokemon.id);
+          }}
+          disabled={isTraining || disabled}
+        >
+          {chosen ? "Abandon" : "Choose"}
+        </button>}
         <button className="flex-1 btn-secondary" disabled={isTraining}>
           Details
         </button>

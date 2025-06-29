@@ -256,3 +256,38 @@ def get_training_cost():
         "total_minutes": total_duration,
         "levels": levels
     }), 200
+
+@pokemon_bp.route('/<int:pokemon_id>', methods=['GET'])
+@jwt_required()
+def get_pokemon(pokemon_id):
+    """
+    Zwraca szczegóły wybranego Pokémona.
+    ---
+    tags:
+      - Pokémon
+    security:
+      - Bearer: []
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        description: Token JWT (w formacie Bearer <twój_token>)
+      - in: path
+        name: pokemon_id
+        type: integer
+        required: true
+        description: ID pokemona
+    responses:
+      200:
+        description: Szczegóły pokemona
+      404:
+        description: Pokemon not found
+    """
+    pokemon = Pokemon.get_by_id(pokemon_id)
+    if not pokemon:
+        return jsonify({"error": "Pokemon not found"}), 404
+    if pokemon.owner_id != current_user.id:
+        return jsonify({"error": "You do not have permission to view this Pokemon"}), 403
+
+    return jsonify(pokemon.to_dict()), 200

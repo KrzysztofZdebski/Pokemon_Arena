@@ -79,7 +79,7 @@ const handleTrain = async (id) => {
 
   if (loading) {
     return (
-      <div className="w-full flex justify-center">
+      <div className="flex justify-center w-full">
         <p className="text-white font-[PokemonFont] text-lg">
           Ładowanie kolekcji...
         </p>
@@ -99,7 +99,7 @@ const handleTrain = async (id) => {
         <main>
           <div className="flex justify-center mb-6">
             <button
-              className="btn-primary px-4 py-2 rounded-lg"
+              className="px-4 py-2 rounded-lg btn-primary"
               onClick={fetchPokemons}
             >
               Odśwież pokemony
@@ -114,6 +114,7 @@ const handleTrain = async (id) => {
                 secondsLeft={getSecondsLeft(pokemon.id)}
                 onTrain={handleTrain}
                 disabled={false}
+                buttonType="train"
               />
             ))}
           </div>
