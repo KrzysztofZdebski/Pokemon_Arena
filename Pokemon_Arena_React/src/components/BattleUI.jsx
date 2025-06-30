@@ -1,10 +1,10 @@
-import React, { useState, useContext, useEffect, use } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../utils/authProvider';
 import authApi from '../utils/authApi';
 
 export default function BattleUI({ battleId, className = "", socket, pokemons, opponent_username }) {
-    const [currentMenu, setCurrentMenu] = useState('main'); // 'main', 'fight', 'pokemon', 'bag', 'waiting'
+    const [currentMenu, setCurrentMenu] = useState('pokemon'); // 'main', 'fight', 'pokemon', 'bag', 'waiting'
     const navigate = useNavigate();
     const [playerPokemons, setPlayerPokemons] = useState([]);
     const [playerPokemon, setPlayerPokemon] = useState(null);
@@ -28,13 +28,21 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     useEffect(() => {
         if(waitingForOpponent) {
             setCurrentMenu('waiting');
+        } else if (currentMenu === 'waiting') {
+            // When no longer waiting, return to appropriate menu
+            if (battleStarted) {
+                setCurrentMenu('main');
+            } else {
+                setCurrentMenu('pokemon');
+            }
         }
-    }, [waitingForOpponent]);
+    }, [waitingForOpponent, currentMenu, battleStarted]);
 
     useEffect(() => {
-        console.log("Player Pokemon:", playerPokemons);
+        console.log("Player Pokemons:", playerPokemons);
+        console.log("Player Pokemon:", playerPokemon);
         console.log("Opponent Pokemon:", opponentPokemon);
-    }, [playerPokemons, opponentPokemon]);
+    }, [playerPokemons, opponentPokemon, playerPokemon]);
 
     const getHpPercentage = (hp, maxHp) => (hp / maxHp) * 100;
     const getHpBarColor = (percentage) => {
@@ -66,10 +74,22 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
 
     const handlePokemonSelect = (pokemon) => {
         if (socket) {
-            socket.emit('choose_pokemon', { battleId, pokemon_id: pokemon.id });
             setWaitingForOpponent(true);
+            socket.emit('choose_pokemon', { battleId, pokemon_id: pokemon.id });
         }
         console.log("Selected Pokemon:", pokemon);
+    }
+
+    const handleSwitchPokemon = (pokemon) => {
+        if (socket) {
+            if (pokemon.id === playerPokemon.id) {
+                console.log("Already selected this Pokemon:", pokemon);
+                alert("You have already selected this Pokémon.");
+                return;
+            }
+            setWaitingForOpponent(true);
+            socket.emit('next_action', { action: {type: 'pokemon', pokemon_id: pokemon.id} });
+        }
     }
 
     const handleMoveSelect = (move) => {
@@ -138,6 +158,21 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             }
             socket.disconnect();
             navigate('/battle');
+        },
+        onNextRound: (data) => {
+            console.log("Next round started:", data);
+            if (!data || !data.game_state) {
+                console.error("Invalid game state data received");
+                return;
+            }
+            setOpponentPokemon(data.game_state.players.find(p => p.username !== username).pokemon);
+            setPlayerPokemon(data.game_state.players.find(p => p.username === username).pokemon);
+            setWaitingForOpponent(false);
+        },
+        onInvalidAction: (data) => {
+            console.error("Invalid action:", data.message);
+            alert(data.message);
+            setWaitingForOpponent(false);
         }
     })
 
@@ -172,8 +207,8 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 <span className="mr-2 text-xs font-bold text-yellow-600">HP</span>
                 <div className="w-24 h-2 bg-black border border-gray-600">
                     <div 
-                    className={`h-full transition-all duration-300 ${getHpBarColor(getHpPercentage(opponentPokemon.hp, opponentPokemon.maxHp))}`}
-                    style={{ width: `${getHpPercentage(opponentPokemon.hp, opponentPokemon.maxHp)}%` }}
+                    className={`h-full transition-all duration-300 ${getHpBarColor(getHpPercentage(opponentPokemon.current_HP, opponentPokemon.max_HP))}`}
+                    style={{ width: `${getHpPercentage(opponentPokemon.current_HP, opponentPokemon.max_HP)}%` }}
                     />
                 </div>
                 </div>
@@ -205,11 +240,11 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 <span className="mr-2 text-xs font-bold text-yellow-600">HP</span>
                 <div className="w-32 h-2 bg-black border border-gray-600">
                     <div 
-                    className={`h-full transition-all duration-300 ${getHpBarColor(getHpPercentage(playerPokemon.hp, playerPokemon.maxHp))}`}
-                    style={{ width: `${getHpPercentage(playerPokemon.hp, playerPokemon.maxHp)}%` }}
+                    className={`h-full transition-all duration-300 ${getHpBarColor(getHpPercentage(playerPokemon.current_HP, playerPokemon.max_HP))}`}
+                    style={{ width: `${getHpPercentage(playerPokemon.current_HP, playerPokemon.max_HP)}%` }}
                     />
                 </div>
-                <span className="ml-2 text-xs">{playerPokemon.hp}/{playerPokemon.maxHp}</span>
+                <span className="ml-2 text-xs">{playerPokemon.currentHP}/{playerPokemon.max_HP}</span>
                 </div>
                 <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -267,7 +302,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                     {playerPokemons.map((pokemon, index) => (
                         <button
                         key={index}
-                        onClick={() => handlePokemonSelect(pokemon)}
+                        onClick={playerPokemon ? () => handleSwitchPokemon(pokemon) : () => handlePokemonSelect(pokemon)}
                         className="p-2 text-sm text-left bg-blue-800 border-2 border-white hover:bg-blue-700"
                         >
                         <div className="font-bold">{pokemon.name}</div>
@@ -312,7 +347,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                     </button>
                 </div>
                 )}
-                {currentMenu !== 'main' && (
+                {(currentMenu !== 'main' && currentMenu !== 'waiting') && (
                 <div className="flex items-center justify-center h-full">
                     <button 
                     onClick={() => setCurrentMenu('main')}

@@ -19,6 +19,8 @@ class SocketService {
             onBattleEnd: null,
             onSelectedPokemon: null,
             onPokemonPrepared: null,
+            onNextRound: null,
+            onInvalidAction: null,
         };
         console.log("SocketService constructor");
         this.reconnectCtr = 0;
@@ -146,6 +148,21 @@ class SocketService {
             // Handle pokemon prepared event, e.g., update UI or state
             if (this.callbacks.onPokemonPrepared) {
                 this.callbacks.onPokemonPrepared(data);
+            }
+        });
+
+        this.socket.on('next_round', (data) => {
+            console.log("Next round started:", data);
+            if (this.callbacks.onNextRound) {
+                this.callbacks.onNextRound(data);
+            }
+        });
+
+        this.socket.on('InvalidAction', (data) => {
+            console.error("Invalid action:", data.message);
+            // Handle invalid action, e.g., show an error message
+            if (this.callbacks.onInvalidAction) {
+                this.callbacks.onInvalidAction(data);
             }
         });
     }

@@ -169,7 +169,14 @@ def ready(data):
     player.set_ready(True)
     pokemonData = []
     for poke in pokemon:
-        pokemonData.append(Pokemon.get_by_id(poke).to_dict())
+        # pokemonData.append(Pokemon.get_by_id(poke).to_dict())
+        pokemon_dict = Pokemon.get_by_id(poke).to_dict()
+        # Extract max HP from stats array
+        hp_stat = next((stat for stat in pokemon_dict['stats'] if stat['stat']['name'] == 'hp'), None)
+        pokemon_dict['max_HP'] = hp_stat['base_stat'] if hp_stat else 0
+        pokemon_dict['current_HP'] = pokemon_dict['max_HP']
+        pokemonData.append(pokemon_dict)
+        
     player.set_pokemon(pokemonData)
 
     room_id = player.room_id
@@ -265,6 +272,7 @@ def next_action(data):
     userID = request.sid
     player = get_player_by_session_id(userID, active_players)
     action = data.get('action')
+    action.setdefault('user_id', userID)  # Ensure user_id is set in action data
     
     if not player or not player.room_id:
         emit('error', {'message': 'You are not in an active game'})
@@ -349,6 +357,7 @@ def find_opponent_in_room(current_session_id, room_id):
 
 def next_round(room_id):
     """Prepare for the next round in the battle"""
+    print(f'Starting next round in room {room_id}')
     room_players = get_room_players(room_id)
     if len(room_players) < 2:
         print(f'Not enough players in room {room_id} to start the next round')
@@ -360,12 +369,19 @@ def next_round(room_id):
     for player in room_players:
         actions.append(player.next_action)
         player.next_action = None
-    handle_actions(actions)
+    try:
+        handle_actions(actions)
+    except InvalidAction as e:
+        return
     
     # Notify players to prepare for the next round
     emit('next_round', {
         'message': 'Prepare for the next round!',
-        'players': [{'username': p.username} for p in room_players]
+        'players': [{'username': p.username} for p in room_players],
+        'game_state': {
+            'room_id': room_id,
+            'players': [{'username': p.username, 'pokemon': p.selected_pokemon} for p in room_players]
+        }
     }, to=room_id)
 
 def handle_actions(actions_data):
@@ -387,4 +403,21 @@ def handle_item(action):
     pass
 
 def handle_pokemon(action):
-    pass
+    print(action)
+    user = get_player_by_session_id(action.get('user_id'), active_players)
+    print(list(p.get('id') for p in user.pokemon))
+    if not user or not user.room_id:
+        emit('error', {'message': 'You are not in an active game'})
+        return
+    
+    if not action.get('pokemon_id') in list(p.get('id') for p in user.pokemon) or action.get('pokemon_id') == user.selected_pokemon.get('id'):
+        emit('InvalidAction', {'message': 'Invalid Pokemon selection'})
+        raise InvalidAction('Invalid Pokemon selection')
+    
+    user.select_pokemon(Pokemon.get_by_id(action.get('pokemon_id')).to_dict())
+
+class InvalidAction(Exception):
+    """Custom exception for invalid actions in the battle"""
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
