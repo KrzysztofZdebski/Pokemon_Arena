@@ -14,6 +14,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     const [battleStarted, setBattleStarted] = useState(false);
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [showBackButton, setShowBackButton] = useState(false);
+    const [moves, setMoves] = useState([]);
 
     useEffect(() => {
         if (!battleStarted) {
@@ -75,6 +76,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     const handlePokemonSelect = (pokemon) => {
         if (socket) {
             setWaitingForOpponent(true);
+            setMoves(pokemon.learned_moves);
             socket.emit('choose_pokemon', { battleId, pokemon_id: pokemon.id });
         }
         console.log("Selected Pokemon:", pokemon);
@@ -88,6 +90,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 return;
             }
             setWaitingForOpponent(true);
+            setMoves(pokemon.learned_moves);
             socket.emit('next_action', { action: {type: 'pokemon', pokemon_id: pokemon.id} });
         }
     }
@@ -254,11 +257,11 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 <div className="flex items-center">
                     <span className="px-1 mr-2 text-xs font-bold text-yellow-600 bg-yellow-200">{playerPokemon.status}</span>
                 </div>
-                <div className="text-xs">
+                {/* <div className="text-xs">
                     <div className="w-16 h-1 bg-black border border-gray-600">
                     <div className="h-full bg-blue-500" style={{ width: `${playerPokemon.exp}%` }}></div>
                     </div>
-                </div>
+                </div> */}
                 </div>
                 </>}
             </div>
@@ -267,7 +270,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             {/* Player Pokemon Sprite */}
             <div className="absolute bottom-32 left-16">
             {battleStarted ?
-            <img src={playerPokemon.sprites.front_default} className='w-60' />
+            <img src={playerPokemon.sprites.back_default} className='w-60' />
             : <></>}
             </div>
 
@@ -288,17 +291,17 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                     </div>
                 )}
                 {currentMenu === 'fight' && (
-                    <div className="grid h-full grid-cols-2 gap-2">
-                    {/* {moves.map((move, index) => (
+                    <div className="grid h-full grid-cols-2 grid-rows-2 gap-2">
+                    {moves.map((move, index) => (
                         <button
                         key={index}
                         onClick={() => handleMoveSelect(move)}
                         className="p-2 text-sm text-left bg-blue-800 border-2 border-white hover:bg-blue-700"
                         >
                         <div className="font-bold">{move.name}</div>
-                        <div className="text-xs">PP {move.pp}/{move.maxPp}</div>
+                        <div className="text-xs">PP {move.PP}/{move.maxPP}</div>
                         </button>
-                    ))} */}
+                    ))}
                     </div>
                 )}
                 {currentMenu === 'pokemon' && (

@@ -134,6 +134,7 @@ class Pokemon(db.Model):
             "is_training": self.is_training,
             "training_end_time": self.training_end_time.isoformat() if self.training_end_time else None,
             "owner_id": self.owner_id,
+            "level": self.training_levels,
         }
     @classmethod
     def get_by_id(cls, pokemon_id):

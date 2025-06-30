@@ -176,6 +176,7 @@ def ready(data):
         hp_stat = next((stat for stat in pokemon_dict['stats'] if stat['stat']['name'] == 'hp'), None)
         pokemon_dict['max_HP'] = hp_stat['base_stat'] if hp_stat else 0
         pokemon_dict['current_HP'] = pokemon_dict['max_HP']
+        pokemon_dict['learned_moves'] = [{'name' : 'scratch', 'type' : {"name":"normal", "damage_relations":{"double_damage_from":[{"name":"fighting","url":"https://pokeapi.co/api/v2/type/2/"}],"double_damage_to":[],"half_damage_from":[],"half_damage_to":[{"name":"rock","url":"https://pokeapi.co/api/v2/type/6/"},{"name":"steel","url":"https://pokeapi.co/api/v2/type/9/"}],"no_damage_from":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}],"no_damage_to":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}]}}, 'power' : 0, 'accuracy' : 100, 'PP' : 35, 'maxPP' : 35}]
         pokemonData.append(pokemon_dict)
         
     player.set_pokemon(pokemonData)
@@ -418,7 +419,7 @@ def handle_pokemon(action):
         emit('InvalidAction', {'message': 'Invalid Pokemon selection'})
         raise InvalidAction('Invalid Pokemon selection')
     
-    user.select_pokemon(Pokemon.get_by_id(action.get('pokemon_id')).to_dict())
+    user.select_pokemon(next((p for p in user.pokemon if p.get('id') == action.get('pokemon_id') )))
 
 class InvalidAction(Exception):
     """Custom exception for invalid actions in the battle"""
