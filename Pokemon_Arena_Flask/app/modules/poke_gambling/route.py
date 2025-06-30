@@ -102,14 +102,14 @@ def buy_greatball():
             balance:
               type: integer
               example: 50
-      400:
-        description: No Pokémon drawn
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              example: "No Pokémon drawn."
+      # 400:
+      #   description: No Pokémon drawn
+      #   schema:
+      #     type: object
+      #     properties:
+      #       message:
+      #         type: string
+      #         example: "No Pokémon drawn."
     
     """
     user_id = current_user.id

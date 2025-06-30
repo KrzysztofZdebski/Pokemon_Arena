@@ -11,6 +11,20 @@ class GamblingController:
     pokemonList = requests.get(f'https://pokeapi.co/api/v2/pokemon?limit=150').json()
     pokemonList_first_generation_pokeball = []
     pokemonList_first_generation_ultraball= []
+    def get_level_0_moves(self, poke_data,n=4):
+        unique_moves = {}
+        for move_entry in poke_data.get("moves", []):
+            move_name = move_entry["move"]["name"]
+            for vgd in move_entry["version_group_details"]:
+                if vgd["level_learned_at"] == 0:
+                    if move_name not in unique_moves:
+                        unique_moves[move_name] = move_entry["move"]
+                        break
+        all_moves = list(unique_moves.values())
+        if len(all_moves) <= n:
+            return all_moves
+        return random.sample(all_moves, 4)
+
     def calucateScore(self,stats):
         score = 0
         for stat in stats:
@@ -24,10 +38,11 @@ class GamblingController:
                 score += stat['base_stat'] * 1.3    
         return round(score)
     
-    def getCatchProbability(self,pokemonList):
+    def getCatchProbability(self,pokemonList,k):
         if pokemonList is None:
             return []
-        k = 0.015
+        # k = 0.015 in pokeball
+        # k = 0.015 in greatball
         weights = [math.exp(-k*pokemon['score']) for pokemon in pokemonList]
         for i,pokemon in enumerate(pokemonList):
             pokemon['weight']=weights[i]
@@ -44,7 +59,6 @@ class GamblingController:
                 "balance": user.coins
             }), 402
         user.coins -= pokeball_pirce
-        print('skibidi')
         # response = requests.get(f'https://pokeapi.co/api/v2/pokemon?limit=150')
         # data = response.json()
         if len(self.pokemonList_first_generation_pokeball)<1:
@@ -59,15 +73,15 @@ class GamblingController:
                         'poke': detailsData,
                         'score': self.calucateScore(detailsData['stats']),
                     })
-            print('skibidi')
-            self.pokemonList_first_generation_pokeball = self.getCatchProbability(self.pokemonList_first_generation_pokeball)
+            self.pokemonList_first_generation_pokeball = self.getCatchProbability(self.pokemonList_first_generation_pokeball,k=0.015)
         totalWeights = sum(poke['weight'] for poke in self.pokemonList_first_generation_pokeball)
         pick = random.random()*totalWeights
-        print(pick)
         for poke in self.pokemonList_first_generation_pokeball:
-            pick -= poke['weight']/totalWeights
+            pick -= poke['weight']
+
             if pick <=0:
                 # user_id = get_jwt_identity()
+                mv = self.get_level_0_moves(poke['poke'])
                 poke_data = poke['poke']
                 new_pokemon = Pokemon(
                     name=poke_data['name'],
@@ -80,7 +94,7 @@ class GamblingController:
                     forms=poke_data.get('forms'),
                     held_items=poke_data.get('held_items'),
                     location_area_encounters=poke_data.get('location_area_encounters'),
-                    moves=poke_data.get('moves'),
+                    moves=mv,
                     past_types=poke_data.get('past_types'),
                     past_abilities=poke_data.get('past_abilities'),
                     sprites=poke_data.get('sprites'),
@@ -92,7 +106,7 @@ class GamblingController:
                 )
                 db.session.add(new_pokemon)
                 db.session.commit()
-                return jsonify({"message": f"You caught {poke_data['name']}!","name":poke_data['name'], "pokemon": poke_data})
+                return jsonify({"message": f"You caught {poke_data['name']}!","name":poke_data['name'], "pokemon": new_pokemon.to_dict()})
         return jsonify({"message": "No Pokémon drawn."}), 400
     @jwt_required() 
     def buy_greatball(self,user_id):
@@ -105,7 +119,6 @@ class GamblingController:
                 "balance": user.coins
             }), 402
         user.coins -= greatball_pirce
-        print('skibidi')
         # response = requests.get(f'https://pokeapi.co/api/v2/pokemon?limit=150')
         # data = response.json()
         if len(self.pokemonList_first_generation_ultraball)<1:
@@ -117,21 +130,21 @@ class GamblingController:
 
                 if speciesData['evolves_from_species'] is None and speciesData['generation']['name'] == 'generation-i':
                     score =  self.calucateScore(detailsData['stats'])
-                    if score >= 500:
+                    if score >= 400:
                         self.pokemonList_first_generation_ultraball.append({
                             'poke': detailsData,
                             'score': score,
                         })
-            print('skibidi')
-            self.pokemonList_first_generation_ultraball = self.getCatchProbability(self.pokemonList_first_generation_ultraball)
-            totalWeights = sum(poke['weight'] for poke in self.pokemonList_first_generation_ultraball)
+            self.pokemonList_first_generation_ultraball.sort(key=lambda x: x['score'], reverse=True)
+            self.pokemonList_first_generation_ultraball = self.getCatchProbability(self.pokemonList_first_generation_ultraball,k=0.022)
+        totalWeights = sum(poke['weight'] for poke in self.pokemonList_first_generation_ultraball)
         pick = random.random()*totalWeights
-        print(pick)
         for poke in self.pokemonList_first_generation_ultraball:
-            pick -= poke['weight']/totalWeights
+            pick -= poke['weight']
             if pick <=0:
                 # user_id = get_jwt_identity()
                 poke_data = poke['poke']
+                mv = self.get_level_0_moves(poke_data)
                 new_pokemon = Pokemon(
                     name=poke_data['name'],
                     base_experience=poke_data.get('base_experience'),
@@ -143,7 +156,7 @@ class GamblingController:
                     forms=poke_data.get('forms'),
                     held_items=poke_data.get('held_items'),
                     location_area_encounters=poke_data.get('location_area_encounters'),
-                    moves=poke_data.get('moves'),
+                    moves= mv,
                     past_types=poke_data.get('past_types'),
                     past_abilities=poke_data.get('past_abilities'),
                     sprites=poke_data.get('sprites'),
@@ -155,5 +168,5 @@ class GamblingController:
                 )
                 db.session.add(new_pokemon)
                 db.session.commit()
-                return jsonify({"message": f"You caught {poke_data['name']}!","name":poke_data['name'], "pokemon": poke_data})
+                return jsonify({"message": f"You caught {poke_data['name']}!","name":poke_data['name'], "pokemon": new_pokemon.to_dict()})
         return jsonify({"message": "No Pokémon drawn."}), 400
