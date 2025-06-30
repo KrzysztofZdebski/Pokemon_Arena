@@ -5,6 +5,7 @@ from flask import Flask, request
 from requests import get
 from app.db.models import Pokemon
 import time
+import json
 
 
 class Player:
@@ -178,6 +179,8 @@ def ready(data):
         pokemonData.append(pokemon_dict)
         
     player.set_pokemon(pokemonData)
+    with open('Pokemon_Arena_Flask/app/logs/pokemon.log', 'a') as f:
+        print(json.dumps(player.pokemon), file=f)
 
     room_id = player.room_id
     print(f'Player {player.username} ({userID}) is ready')
@@ -235,14 +238,15 @@ def choose_pokemon(data):
         return
     
     # Fetch Pokemon data from the database
-    pokemon = Pokemon.get_by_id(pokemon_id)
+    pokemon = next((p for p in player.pokemon if p.get('id') == pokemon_id))
+    # print(f'Pokemon chosen: {pokemon}')
     if not pokemon:
         emit('error', {'message': 'Pokemon not found'})
         return
     
-    player.select_pokemon(pokemon.to_dict())
+    player.select_pokemon(pokemon)
     
-    print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.name}')
+    print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.get("name")}')
     
     opponent_id, opponent = find_opponent_in_room(userID, player.room_id)
     if not opponent:

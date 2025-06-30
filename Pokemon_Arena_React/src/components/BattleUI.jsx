@@ -100,11 +100,15 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             try {
                 setIsLoading(true);
                 const pokemonPromises = [];
-                for (let poke_id in pokemons) {
-                    pokemonPromises.push(authApi.get(`/api/v1/pokemon/${pokemons[poke_id]}`));
+                for (let i = 0; i < pokemons.length; i++) {
+                    const poke_id = pokemons[i];
+                    pokemonPromises.push(authApi.get(`/api/v1/battles/pokemon`, 
+                        { params: { pokemon_id: poke_id } }
+                    ));
                 }
                 const pokemonResponses = await Promise.all(pokemonPromises);
-                const pokemonList = pokemonResponses.map(response => response.data);
+                console.log("Pokemon Responses:", pokemonResponses);
+                const pokemonList = pokemonResponses.map(response => response.data.data);
                 setPlayerPokemons(pokemonList);
             } catch (error) {
                 console.error("Error fetching Pokemon:", error);
