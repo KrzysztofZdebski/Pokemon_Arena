@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useParams } from "react-router-dom";
 import socketService from "../utils/socketService";
 import { Chat } from "../components/Chat";
 import BattleUI from "../components/BattleUI";
 import authApi from "../utils/authApi";
 import PokemonCard from "../components/PokemonCard";
+import AuthContext from "../utils/authProvider";
 
 export default function Combat() {
     const { id } = useParams();
@@ -13,6 +14,8 @@ export default function Combat() {
     const [pokemons, setPokemons] = useState([]);
     const [selectedPokemons, setSelectedPokemons] = useState([]);
     const [isReady, setIsReady] = useState(false);
+    const [opponentUsername, setOpponentUsername] = useState("");
+    const {username} = useContext(AuthContext);
 
 
     // uniwersalna funkcja do ładowania pokemonów
@@ -47,6 +50,12 @@ export default function Combat() {
             },
             onBattleStart: (data) => {
                 console.log("Battle started:", data);
+                for (let i = 0; i < data.players.length; i++) {
+                    if (data.players[i].username !== username) {
+                        setOpponentUsername(data.players[i].username);
+                        break;
+                    }
+                }
                 setInBattle(true);
             },
         });
@@ -87,7 +96,7 @@ export default function Combat() {
         <div className="w-screen min-h-screen mt-20 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
         { InBattle ?
             <div className="flex flex-row items-center justify-center h-full p-4 mx-auto w-7/10">
-                <BattleUI battleId={id} socket={socketService} className="w-3/5" pokemons={selectedPokemons}/>
+                <BattleUI battleId={id} socket={socketService} className="w-3/5" pokemons={selectedPokemons} opponent_username={opponentUsername}/>
                 <Chat messages={messages} className="w-2/5 h-150" socket={socketService} />
             </div> :
             <>

@@ -61,6 +61,11 @@ function Battle() {
 
   const navigate = useNavigate();
 
+  const joinQueue = () => {
+    socketService.emit('join_queue', {"username" : username});
+    console.log("Joining battle queue with username:", username);
+  }
+
   return (
     <>
       <div className="w-screen min-h-screen mt-20 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
@@ -80,7 +85,7 @@ function Battle() {
             <div className="max-w-2xl pokemon-card">
               <h2 className="mb-6 text-2xl font-semibold text-center">Choose Your Battle</h2>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="p-6 text-white transition-shadow rounded-lg shadow-lg cursor-pointer bg-gradient-to-r from-red-500 to-red-600 hover:shadow-xl" onClick={() => socketService.emit('join_queue', {"username" : username})}>
+                <div className="p-6 text-white transition-shadow rounded-lg shadow-lg cursor-pointer bg-gradient-to-r from-red-500 to-red-600 hover:shadow-xl" onClick={joinQueue}>
                   <h3 className="mb-2 text-xl font-bold">Quick Battle</h3>
                   <p>Jump into a random battle with any Pokemon!</p>
                 </div>

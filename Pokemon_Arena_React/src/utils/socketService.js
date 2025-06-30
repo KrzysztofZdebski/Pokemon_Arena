@@ -16,7 +16,9 @@ class SocketService {
             onReceiveText: null,
             onAuthFail: null,
             onBattleStart: null,
+            onBattleEnd: null,
             onSelectedPokemon: null,
+            onPokemonPrepared: null,
         };
         console.log("SocketService constructor");
         this.reconnectCtr = 0;
@@ -125,10 +127,25 @@ class SocketService {
             }
         });
 
+        this.socket.on('battle_end', (data) => {
+            console.log("Battle ended:", data);
+            if (this.callbacks.onBattleEnd) {
+                this.callbacks.onBattleEnd(data);
+            }
+        });
+
         this.socket.on('pokemon_chosen', (data) => {
             console.log("Pokemon chosen:", data);
             if (this.callbacks.onSelectedPokemon) {
                 this.callbacks.onSelectedPokemon(data);
+            }
+        });
+
+        this.socket.on('pokemon_prepared', (data) => {
+            console.log("Pokemon prepared:", data);
+            // Handle pokemon prepared event, e.g., update UI or state
+            if (this.callbacks.onPokemonPrepared) {
+                this.callbacks.onPokemonPrepared(data);
             }
         });
     }

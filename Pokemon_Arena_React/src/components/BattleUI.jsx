@@ -1,17 +1,36 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, use } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthContext from '../utils/authProvider';
 import authApi from '../utils/authApi';
 
-export default function BattleUI({ battleId, className = "", socket, pokemons }) {
-    const [currentMenu, setCurrentMenu] = useState('main'); // 'main', 'fight', 'pokemon', 'bag'
-    const [selectedMove, setSelectedMove] = useState(null);
+export default function BattleUI({ battleId, className = "", socket, pokemons, opponent_username }) {
+    const [currentMenu, setCurrentMenu] = useState('main'); // 'main', 'fight', 'pokemon', 'bag', 'waiting'
     const navigate = useNavigate();
     const [playerPokemons, setPlayerPokemons] = useState([]);
     const [playerPokemon, setPlayerPokemon] = useState(null);
     const [opponentPokemon, setOpponentPokemon] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const {username} = useContext(AuthContext);
+    const [battleStarted, setBattleStarted] = useState(false);
+    const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+    const [showBackButton, setShowBackButton] = useState(false);
+
+    useEffect(() => {
+        if (!battleStarted) {
+            setCurrentMenu('pokemon');
+            setShowBackButton(false);
+        } else{
+            setCurrentMenu('main');
+            setShowBackButton(true);
+        }
+    }, [battleStarted]);
+
+    useEffect(() => {
+        if(waitingForOpponent) {
+            setCurrentMenu('waiting');
+        }
+    }, [waitingForOpponent]);
+
     useEffect(() => {
         console.log("Player Pokemon:", playerPokemons);
         console.log("Opponent Pokemon:", opponentPokemon);
@@ -28,18 +47,19 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
         setCurrentMenu(action);
     };
 
-    const handleMoveSelect = (move) => {
-        // Emit move selection to socket
-        if (socket) {
-        socket.emit('battle_move', { battleId, move: move.name });
-        }
-        setCurrentMenu('main');
-    };
+    // const handleMoveSelect = (move) => {
+    //     // Emit move selection to socket
+    //     if (socket) {
+    //     socket.emit('battle_move', { battleId, move: move.name });
+    //     }
+    //     setCurrentMenu('main');
+    // };
 
     const handleRun = () => {
         const confirmed = window.confirm("Are you sure you want to run?");
         if(confirmed){
-            socket.disconnect();
+            console.log("Emitting run event with:", {username, opponent_username});
+            socket.emit('run', {username, opponent_username});
             navigate('/battle');
         }
     }
@@ -47,9 +67,12 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
     const handlePokemonSelect = (pokemon) => {
         if (socket) {
             socket.emit('choose_pokemon', { battleId, pokemon_id: pokemon.id });
+            setWaitingForOpponent(true);
         }
         console.log("Selected Pokemon:", pokemon);
-        setPlayerPokemon(pokemon);
+    }
+
+    const handleMoveSelect = (move) => {
     }
 
     useEffect(() => {
@@ -78,17 +101,43 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
     }, [pokemons]);
 
     socket.updateCallbacks({
-        onSelectedPokemon: (data) => {
-            console.log("Selected Pokemon:", data);
+        // onSelectedPokemon: (data) => {
+        //     console.log("Selected Pokemon:", data);
+        //     if (!data || !data.pokemon) {
+        //         console.error("Invalid Pokemon data received");
+        //         return;
+        //     }
+        //     if (data.player !== username) {
+        //         setOpponentPokemon(data.pokemon);
+        //         return;
+        //     }
+        //     setPlayerPokemon(data.pokemon);
+        // },
+        onPokemonPrepared: (data) => {
+            console.log("Battle started:", data);
             if (!data || !data.pokemon) {
                 console.error("Invalid Pokemon data received");
                 return;
             }
-            if (data.player !== username) {
-                setOpponentPokemon(data.pokemon);
-                return;
+            if (data.pokemon.player1.username === username){
+                setPlayerPokemon(data.pokemon.player1.pokemon);
+                setOpponentPokemon(data.pokemon.player2.pokemon);
+            } else{
+                setPlayerPokemon(data.pokemon.player2.pokemon);
+                setOpponentPokemon(data.pokemon.player1.pokemon);
             }
-            setPlayerPokemon(data.pokemon);
+            setBattleStarted(true);
+            setWaitingForOpponent(false);
+        },
+        onBattleEnd: (data) => {
+            console.log("Battle ended:", data);
+            if (data.winner === username) {
+                alert("You won the battle!");
+            } else {
+                alert("You lost the battle.");
+            }
+            socket.disconnect();
+            navigate('/battle');
         }
     })
 
@@ -110,7 +159,10 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
             <div className="absolute top-4 left-4">
             {/* Opponent HP Bar */}
             <div className="p-2 mb-2 bg-gray-700 border-4 border-black rounded-lg" style={{ fontFamily: 'monospace' }}>
-                {opponentPokemon === null ? <></> :
+                {opponentPokemon === null ? 
+                <>
+                <div className="text-sm font-bold text-gray-400">Waiting for opponent...</div>
+                </> :
                 <>
                 <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-bold">{opponentPokemon.name}</span>
@@ -131,15 +183,19 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
 
             {/* Opponent Pokemon Sprite */}
             <div className="absolute top-10 right-10">
-            {opponentPokemon === null ? <></> :
-            <img src={opponentPokemon.sprites.front_default} className='w-60' />}
+            {battleStarted ?
+            <img src={opponentPokemon.sprites.front_default} className='w-60' />
+            : <></>}
             </div>
 
             {/* Player Pokemon Area */}
             <div className="absolute bottom-32 right-4">
             {/* Player HP Bar */}
             <div className="p-2 mb-10 bg-gray-700 border-4 border-black rounded-lg" style={{ fontFamily: 'monospace' }}>
-                {playerPokemon === null ? <></> :
+                {playerPokemon === null ? 
+                <>
+                <div className="text-sm font-bold text-gray-400">Select a Pokémon</div>
+                </> :
                 <>
                 <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-bold">{playerPokemon.name}</span>
@@ -171,8 +227,9 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
 
             {/* Player Pokemon Sprite */}
             <div className="absolute bottom-32 left-16">
-            {playerPokemon === null ? <></> :
-            <img src={playerPokemon.sprites.back_default} className='w-60' />}
+            {battleStarted ?
+            <img src={playerPokemon.sprites.front_default} className='w-60' />
+            : <></>}
             </div>
 
             {/* Bottom UI Panel */}
@@ -181,9 +238,14 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
             {/* Message/Action Panel */}
             <div className="w-1/2 p-4 text-white bg-blue-900 border-4 border-yellow-600" style={{ fontFamily: 'monospace' }}>
                 <div className="flex flex-col justify-center h-full">
+                {currentMenu === 'waiting' && (
+                    <div className="text-lg font-bold text-center">
+                        Waiting for opponent...
+                    </div>
+                )}
                 {currentMenu === 'main' && (
                     <div className="text-lg leading-tight whitespace-pre-line">
-                    {/* {messageText} */}
+                    What will {playerPokemon.name} do?
                     </div>
                 )}
                 {currentMenu === 'fight' && (
@@ -255,6 +317,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons })
                     <button 
                     onClick={() => setCurrentMenu('main')}
                     className="p-2 text-lg font-bold bg-gray-500 border-2 border-black hover:bg-gray-600"
+                    hidden={!showBackButton}
                     >
                     ← BACK
                     </button>

@@ -4,6 +4,7 @@ from app.extensions import socketio
 from flask import Flask, request
 from requests import get
 from app.db.models import Pokemon
+import time
 
 
 class Player:
@@ -14,6 +15,7 @@ class Player:
         self.ready = False
         self.room_id = None
         self.selected_pokemon = None
+        self.next_action = None
 
     def set_pokemon(self, pokemon):
         self.pokemon = pokemon
@@ -215,6 +217,7 @@ def choose_pokemon(data):
     player = get_player_by_session_id(userID, active_players)
     pokemon_id = data.get('pokemon_id')
     print(f'Player {player.username} ({userID}) is choosing Pokemon with ID: {pokemon_id}')
+    print(data)
     
     if not player or not player.room_id:
         emit('error', {'message': 'You are not in an active game'})
@@ -234,11 +237,74 @@ def choose_pokemon(data):
     
     print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.name}')
     
-    # Notify the room about the chosen Pokemon
-    emit('pokemon_chosen', {
-        'message': f'{player.username} has chosen {pokemon.name}',
-        'player': player.username,
-        'pokemon': pokemon.to_dict()
+    opponent_id, opponent = find_opponent_in_room(userID, player.room_id)
+    if not opponent:
+        emit('error', {'message': 'Opponent not found in the room'})
+        return
+    
+    if opponent.selected_pokemon:
+        # If opponent has already selected a Pokemon, notify both players
+        # time.sleep(2)
+        emit('pokemon_prepared', {
+            'message': f'{player.username} and {opponent.username} have chosen their Pokemon!',
+            'pokemon': {
+                'player1' : {
+                    'username': player.username,
+                    'pokemon': player.selected_pokemon
+                },
+                'player2' : {
+                    'username': opponent.username,
+                    'pokemon': opponent.selected_pokemon
+                }
+            }
+        }, to=player.room_id)
+
+@socketio.on('next_action')
+def next_action(data):
+    """Handle the next action in the battle"""
+    userID = request.sid
+    player = get_player_by_session_id(userID, active_players)
+    action = data.get('action')
+    
+    if not player or not player.room_id:
+        emit('error', {'message': 'You are not in an active game'})
+        return
+    
+    if not action:
+        emit('error', {'message': 'Action is required'})
+        return
+    
+    if player.next_action:
+        emit('error', {'message': 'You have already set your next action'})
+        return
+    
+    # Store the player's next action
+    player.next_action = action
+    print(f'Player {player.username} ({userID}) has set their next action: {action}')
+    
+    # Notify the room that the player has set their next action
+    emit('action_set', {
+        'message': f'Player {player.username} has set their next action',
+        'username': player.username
+    }, to=player.room_id)
+    
+    # Check if both players have set their actions
+    room_players = get_room_players(player.room_id)
+    all_actions_set = len(room_players) == 2 and all(p.next_action for p in room_players)
+    
+    if all_actions_set:
+        # Proceed to handle actions
+        next_round(player.room_id)
+        
+@socketio.on('run')
+def handle_run(data):
+    userID = request.sid
+    player = get_player_by_session_id(userID, active_players)
+    print(f'Player {player.username} ({userID}) is trying to run from the battle {data}')
+
+    emit('battle_end', {
+        'message': f'{data.get("username")} has run from the battle!',
+        'winner': data.get('opponent_username')
     }, to=player.room_id)
 
 def generate_room_id():
@@ -280,3 +346,45 @@ def find_opponent_in_room(current_session_id, room_id):
         if session_id != current_session_id and player.room_id == room_id:
             return session_id, player
     return None, None
+
+def next_round(room_id):
+    """Prepare for the next round in the battle"""
+    room_players = get_room_players(room_id)
+    if len(room_players) < 2:
+        print(f'Not enough players in room {room_id} to start the next round')
+        emit('error', {'message': 'Not enough players to start the next round'}, to=room_id)
+        return
+    
+    # Reset players' next actions
+    actions = []
+    for player in room_players:
+        actions.append(player.next_action)
+        player.next_action = None
+    handle_actions(actions)
+    
+    # Notify players to prepare for the next round
+    emit('next_round', {
+        'message': 'Prepare for the next round!',
+        'players': [{'username': p.username} for p in room_players]
+    }, to=room_id)
+
+def handle_actions(actions_data):
+    for action in actions_data:
+        match action.get('type'):
+            case 'move':
+                handle_move(action)
+            case 'item':
+                handle_item(action)
+            case 'pokemon':
+                handle_pokemon(action)
+            case _:
+                print(f"Unknown action type: {action.get('type')}")
+
+def handle_move(action):
+    pass
+
+def handle_item(action):
+    pass
+
+def handle_pokemon(action):
+    pass
