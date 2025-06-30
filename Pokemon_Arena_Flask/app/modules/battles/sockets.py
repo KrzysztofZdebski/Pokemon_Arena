@@ -1,14 +1,15 @@
-from flask_jwt_extended import jwt_required, current_user
+from flask_jwt_extended import jwt_required, current_user, get_jwt_identity
 from flask_socketio import emit, join_room, leave_room, rooms, ConnectionRefusedError
 from app.extensions import socketio
 from flask import Flask, request
 from requests import get
 from app.db.models import Pokemon
 import time
+from app.db.models import User
 
 
 class Player:
-    def __init__(self, user_id, username):
+    def __init__(self, user_id, username, points):
         self.user_id = user_id
         self.username = username
         self.pokemon = None
@@ -16,6 +17,7 @@ class Player:
         self.room_id = None
         self.selected_pokemon = None
         self.next_action = None
+        self.points = points  # Points for matchmaking, can be used for ranking
 
     def set_pokemon(self, pokemon):
         self.pokemon = pokemon
@@ -81,62 +83,93 @@ def test_disconnect(reason):
         print(f'Removed {player.username} ({userID}) from waiting queue')
 
 @socketio.on('join_queue')
+@jwt_required()  # jeśli korzystasz z JWT
 def join_queue(data):
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        emit('error', {'message': 'User not found'})
+        return
+
+    points = user.points 
     username = data.get('username')
+    points = data.get('points', 0)  
     userID = request.sid
-    print(f'User {username} is trying to join the queue')
-    print('Current waiting players:', {sid: player.username for sid, player in waiting_players.items()})
-    print('Current active players:', {sid: player.username for sid, player in active_players.items()})
-    
+
     if not username:
         emit('error', {'message': 'Username is required'})
         return
-        
-    if userID in waiting_players:
-        emit('error', {'message': 'You are already in the queue'})
+
+    if userID in waiting_players or userID in active_players:
+        emit('error', {'message': 'Already in queue or game'})
         return
-        
-    if userID in active_players:
-        emit('error', {'message': 'You are already in an active game'})
-        return
-    
-    if not waiting_players:
-        # First player creates a room and waits
-        room_id = generate_room_id()
-        player = Player(userID, username)
+
+
+    player = Player(userID, username, points)
+    waiting_players[userID] = player
+
+    opponent_session_id, opponent_player = find_opponent(userID)
+    if opponent_player:
+
+        room_id = opponent_player.room_id or generate_room_id()
         player.set_room_id(room_id)
-        waiting_players[userID] = player
-        print(f'Player {username} with ID {userID} created room {room_id} and is waiting')
-        join_room(room_id)
-        emit('queue_status', {'message': f'{username} with ID {userID} joined the queue', 'room_id': room_id})
-    else:
-        # Second player joins - match found!
-        opponent_session_id, opponent_player = find_opponent()
-        room_id = opponent_player.room_id
-        
-        # Create player object for the second player
-        current_player = Player(userID, username)
-        current_player.set_room_id(room_id)
-        
-        # Add both players to active games
-        active_players[userID] = current_player
+        opponent_player.set_room_id(room_id)
+
+
+        active_players[userID] = player
         active_players[opponent_session_id] = opponent_player
-        
-        # Second player joins the existing room
+
+
         join_room(room_id)
-        
-        print(f'Match found! {opponent_player.username} vs {username} in room {room_id}')
-        
-        # Emit to the entire room (both players should receive this)
+
+
+        waiting_players.pop(userID, None)
+        waiting_players.pop(opponent_session_id, None)
+
         emit('match_found', {
-            'room_id': room_id, 
+            'room_id': room_id,
             'players': [
-                {'session_id': opponent_session_id, 'username': opponent_player.username},
-                {'session_id': userID, 'username': username}
+                {'session_id': userID, 'username': username, 'points': points},
+                {'session_id': opponent_session_id, 'username': opponent_player.username, 'points': opponent_player.points}
             ],
             'message': 'Match found! Get ready to battle!'
         }, to=room_id)
+
         match_setup(room_id, opponent_session_id, userID)
+    else:
+        room_id = generate_room_id()
+        player.set_room_id(room_id)
+        join_room(room_id)
+        emit('queue_status', {
+            'message': f'{username} ({userID}) joined the queue, waiting for an opponent.',
+            'room_id': room_id
+        })
+
+def find_opponent(userID):
+    """
+    Znajdź przeciwnika o jak najmniejszej różnicy punktów względem userID.
+    """
+    if userID not in waiting_players or len(waiting_players) <= 1:
+        return None, None
+
+    my_player = waiting_players[userID]
+    min_diff = float('inf')
+    best_opponent_id = None
+    best_opponent = None
+
+    for session_id, player in waiting_players.items():
+        if session_id == userID:
+            continue
+        diff = abs(my_player.points - player.points)
+        if diff < min_diff:
+            min_diff = diff
+            best_opponent_id = session_id
+            best_opponent = player
+
+    if best_opponent_id:
+        return best_opponent_id, best_opponent
+
+    return None, None
 
 @socketio.on('send_text')
 def send_text(data):
@@ -319,8 +352,33 @@ def generate_room_id():
     import uuid
     return str(uuid.uuid4())
 
-def find_opponent():
-    """Find and return an opponent from waiting players"""
+def find_opponent(userID):
+    if userID not in waiting_players or len(waiting_players) <= 1:
+        # Brak przeciwnika
+        return None, None
+
+    my_player = waiting_players[userID]
+    min_diff = float('inf')
+    best_opponent_id = None
+    best_opponent = None
+
+    for session_id, player in waiting_players.items():
+        if session_id == userID:
+            continue
+        diff = abs(my_player.points - player.points)
+        if diff < min_diff:
+            min_diff = diff
+            best_opponent_id = session_id
+            best_opponent = player
+
+    if best_opponent_id:
+        # Usuwamy przeciwnika z kolejki
+        waiting_players.pop(best_opponent_id)
+        return best_opponent_id, best_opponent
+
+    return None, None
+
+
     if waiting_players:
         return waiting_players.popitem()
     return None, None
