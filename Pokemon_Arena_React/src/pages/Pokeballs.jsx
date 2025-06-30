@@ -4,12 +4,35 @@ import authApi from "../utils/authApi";
 const POKEAPI_BASE = "https://pokeapi.co/api/v2";
 
 function Pokeballs() {
-    const [pokemon, setPokemon] = useState([]);
+    const [pokemon, setPokemon] = useState(null);
     const [loading, setLoading] = useState(false);
    
     const buyPokeBall = async () =>{
-        const res = await authApi.get('api/v1/gambling/pokeballs');
-        setPokemon(res.pokemon)
+        // setLoading(true);
+        try{
+            const res = await authApi.get('api/v1/pokeballs/');
+            const poke = res.data.pokemon;
+            // setPokemon(res.pokemon)
+            alert(`You caught a ${res.data.name}`);
+            setPokemon(poke);
+        }catch(err){
+            setPokemon(null);
+            alert("Error fetching Pokémon data. Please try again later.");
+        }
+        setLoading(false);
+    }
+    const buyGreatBall = async () => {
+        try{
+            const res = await authApi.get('api/v1/pokeballs/greatball');
+            const poke = res.data.pokemon;
+            //setPokemon(res.pokemon)
+            alert(`You caught a ${res.data.name}`);
+            setPokemon(poke);
+        }catch(err){
+            setPokemon(null);
+            alert("Error fetching Pokémon data. Please try again later.");
+        }
+        setLoading(false);
     }
     
 
@@ -18,9 +41,9 @@ function Pokeballs() {
         {/* <h1>Pokémon Stat Scores</h1> */}
         <div className = 'flex justify-center items-center mb-4'>
 
-        {loading ? (
+        {/* {loading ? (
             <div>Loading Pokémon...</div>
-        ) : (
+        ) : ( */}
            
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <Button
@@ -29,20 +52,37 @@ function Pokeballs() {
                     style={{backgroundColor: '#c7a24a'}}
                     onClick={()=>{
                         buyPokeBall();
-                        if (pokemon) {
-                            alert(`You caught a ${pokemon.name}! Score: ${pokemon.score}, Catch Probability: ${(pokemon.catchProbability * 100).toFixed(4)}%`);
-                        } else {
-                            alert("No Pokémon available to catch!");
-                        }
                     }}
                 >
                     <img src="\src\original-dbe29920e290da99d214598ac9e2001f.webp" alt="" />
                     150 PokeDollars
                 </Button>
+                {/* {pokemon && (
+                <div className="mt-4 flex flex-col items-center">
+                    <img src={pokemon.sprites.front_default} alt={pokemon.name} />
+                    <div>{pokemon.name}</div>
+                </div> */}
+            {/* )} */}
+                <Button
+                    type="submit" 
+                    className="w-full mt-4 btn-primary"
+                    style={{backgroundColor: '#c7a24a'}}
+                    onClick={()=>{
+                    buyGreatBall();
+                    }}
+                    >
+                        <img src="\src\assets\greatball.png" alt="" />
+                        450 PokeDollars
+                </Button>
+                    {/* {pokemon && (
+                    <div className="mt-4 flex flex-col items-center">
+                        <img src={pokemon.sprites.front_default} alt={pokemon.name} />
+                        <div>{pokemon.name}</div>
+                    </div>
+                    )} */}
             </div>
             
-            
-        )}
+        {/* )} */}
         </div>
     </div>
     );

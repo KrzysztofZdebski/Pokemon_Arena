@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from app.config.config import get_config_by_name
 from app.initialize_functions import initialize_route, initialize_db, initialize_swagger, initialize_blocklist_cleanup, initialize_cors, initialize_jwt, initialize_socketio
 import app.modules.battles.sockets  # Importing sockets to register them with SocketIO
