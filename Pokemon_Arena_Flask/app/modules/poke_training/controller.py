@@ -65,19 +65,23 @@ class PokemonController:
 
         now = datetime.utcnow()
         if pokemon.is_training and pokemon.training_end_time and now >= pokemon.training_end_time:
-            stat_map = {s["stat"]["name"]: s["base_stat"] for s in pokemon.stats}
-            base_hp = stat_map.get("hp", 0)
-            base_attack = stat_map.get("attack", 0)
-            base_defense = stat_map.get("defense", 0)
-            levels_up = getattr(pokemon, "training_levels", 1)  # <------ NOWE!
+            levels_up = getattr(pokemon, "training_levels", 1)
             pokemon.level += levels_up
-            pokemon.hp += round(base_hp / 50) * levels_up
-            pokemon.attack += round(base_attack / 50) * levels_up
-            pokemon.defense += round(base_defense / 50) * levels_up
+
+            # Zaktualizuj wartości w pokemon.stats
+            for stat in pokemon.stats:
+                name = stat["stat"]["name"]
+                if name in ["hp", "attack", "defense"]:
+                    increase = round(stat["base_stat"] / 50) * levels_up
+                    stat["base_stat"] += increase
+
             pokemon.is_training = False
             pokemon.training_end_time = None
             pokemon.training_levels = 1  # resetuj po zakończonym treningu
             db.session.commit()
+
+            # Wyciąganie statystyk z JSON-a
+        stat_map = {s["stat"]["name"]: s["base_stat"] for s in pokemon.stats}
 
         return jsonify({
             "id": pokemon.id,
@@ -85,8 +89,8 @@ class PokemonController:
             "level": pokemon.level,
             "is_training": pokemon.is_training,
             "training_end_time": pokemon.training_end_time.isoformat() if pokemon.training_end_time else None,
-            "hp": pokemon.hp,
-            "attack": pokemon.attack,
-            "defense": pokemon.defense,
+            "hp": stat_map.get("hp"),
+            "attack": stat_map.get("attack"),
+            "defense": stat_map.get("defense"),
         }), 200
 
