@@ -1,3 +1,5 @@
+import math
+import requests
 from app.db.db import db
 from app.extensions import jwt
 from sqlalchemy.orm import mapped_column
@@ -135,3 +137,89 @@ class Pokemon(db.Model):
             "training_end_time": self.training_end_time.isoformat() if self.training_end_time else None,
             "owner_id": self.owner_id,
         }
+class Pokeball(db.Model):
+    __tablename__ = "pokeballs"
+    id = db.Column(db.Integer, primary_key=True, nullable = False)  # PokeAPI ID
+    pokeball_name = db.Column(db.String(100),nullable = False)
+    generation = db.Column(db.String(100),nullable = False)
+    pokemon_name = db.Column(db.String(100),nullable = False)
+    score = db.Column(db.Integer)
+    probabilities = db.Column(db.Float)
+    price = db.Column(db.Integer, default=150)
+
+    @staticmethod
+    def add_pokeball_to_db(pokeball_name,pokemonList,totalWeight,price,generation='generation-i'):
+        for pokemon in pokemonList:
+            pokeball = Pokeball(
+                pokeball_name = pokeball_name,
+                pokemon_name = pokemon['poke']['name'],
+                generation = generation,
+                score = pokemon['score'],
+                probabilities = pokemon['weight'] / totalWeight,
+                price = price
+            )
+            db.session.add(pokeball)
+        db.session.commit()
+    @staticmethod
+    def fetch_pokemon_generation_I():
+        poke_resp = requests.get(f'https://pokeapi.co/api/v2/pokemon?limit=150').json()
+        pokemonList =[]
+        for poke in poke_resp['results']:
+            detailsResp = requests.get(f'https://pokeapi.co/api/v2/pokemon/{poke["name"]}')
+            detailsData = detailsResp.json()
+            speciesResp = requests.get(f'https://pokeapi.co/api/v2/pokemon-species/{poke["name"]}')
+            speciesData = speciesResp.json()
+
+            if speciesData['evolves_from_species'] is None and speciesData['generation']['name'] == 'generation-i':
+                pokemonList.append({
+                    'poke': detailsData,
+                    'score': Pokeball.calucateScore(detailsData['stats']),
+                })
+        k = 0.015
+        pokemonList = Pokeball.getCatchProbability(pokemonList,k)
+        totalWeight = sum(p['weight'] for p in pokemonList)
+        return pokemonList,totalWeight
+    @staticmethod
+    def calucateScore(stats):
+        score = 0
+        for stat in stats:
+            if stat['stat']['name'] =='hp':
+                score += stat['base_stat'] * 1.5
+            elif stat['stat']['name'] in ['attack', 'defense']:
+                score += stat['base_stat'] * 1.2
+            elif stat['stat']['name'] in ['special-attack', 'special-defense']:
+                score += stat['base_stat'] * 1.1
+            elif stat['stat']['name'] == 'speed':
+                score += stat['base_stat'] * 1.3    
+        return round(score)
+    @staticmethod
+    def getCatchProbability(pokemonList,k):
+        if pokemonList is None:
+            return []
+        # k = 0.015 in pokeball
+        # k = 0.015 in greatball
+        weights = [math.exp(-k*pokemon['score']) for pokemon in pokemonList]
+        for i,pokemon in enumerate(pokemonList):
+            pokemon['weight']=weights[i]
+        return pokemonList
+    @staticmethod
+    def create_pokeball_gen_I():
+        pokeball_name = 'pokeball'
+        generation = 'generation-i'
+        pokeball = Pokeball.query.filter_by(pokeball_name=pokeball_name,generation = generation).first()
+        if pokeball:
+            return f"Pokeball {pokeball_name} for {generation} already exists in the database."
+        pokemonList,totalWeight = Pokeball.fetch_pokemon_generation_I()
+        pokeball_price = 150
+        Pokeball.add_pokeball_to_db(pokeball_name,pokemonList,totalWeight,pokeball_price)
+    @staticmethod
+    def create_gretball_gen_I():
+        pokeball_name = 'greatball'
+        generation = 'generation-i'
+        pokeball = Pokeball.query.filter_by(pokeball_name=pokeball_name,generation = generation).first()
+        if pokeball:
+            return f"Pokeball {pokeball_name} for {generation} already exists in the database."
+        pokemonList,totalWeight = Pokeball.fetch_pokemon_generation_I()
+        pokemonList = [p for p in pokemonList if p['score'] >= 400]
+        greatball_price = 450
+        Pokeball.add_pokeball_to_db(pokeball_name,pokemonList,totalWeight,greatball_price,generation)
