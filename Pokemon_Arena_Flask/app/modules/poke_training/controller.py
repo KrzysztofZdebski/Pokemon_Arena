@@ -107,7 +107,7 @@ class PokemonController:
 
     @staticmethod
     def get_learnable_moves(pokemon_name, current_level):
-        EXCLUDED_MOVES = {'haze'}  # wykluczone ruchy
+        EXCLUDED_MOVES = {}  # wykluczone ruchy
 
         response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}")
         if response.status_code != 200:
