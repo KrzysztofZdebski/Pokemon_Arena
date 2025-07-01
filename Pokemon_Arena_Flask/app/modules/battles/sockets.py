@@ -372,8 +372,21 @@ def next_round(room_id):
     # Reset players' next actions
     actions = []
     for player in room_players:
-        actions.append(player.next_action)
+        priority = None
+        match player.next_action.get('type'):
+            case 'pokemon':
+                priority = 3
+            case 'item':
+                priority = 2
+            case 'move':
+                priority = 1
+            case _:
+                priority = 0
+
+        actions.append((player.next_action, priority))
         player.next_action = None
+
+    actions.sort(key=lambda x: x[1], reverse=True)  # Sort actions by priority
     try:
         handle_actions(actions)
     except InvalidAction as e:
@@ -389,26 +402,51 @@ def next_round(room_id):
         }
     }, to=room_id)
 
+def find_speed(action):
+    """Find the speed of the action's Pokemon"""
+    user = get_player_by_session_id(action.get('user_id'), active_players)
+    if not user or not user.selected_pokemon:
+        return 0
+    return user.selected_pokemon.get('stats', {}).get('speed', 0)
+
 def handle_actions(actions_data):
+    user = get_player_by_session_id(actions_data[0][0].get('user_id'), active_players)
+
+    if actions_data[0][0].get('type') == actions_data[1][0].get('type') == 'move':
+        actions_data.sort(key= lambda x: find_speed(x[0]), reverse=True)
+
     for action in actions_data:
-        match action.get('type'):
+        match action[0].get('type'):
             case 'move':
-                handle_move(action)
+                handle_move(action[0])
             case 'item':
-                handle_item(action)
+                handle_item(action[0])
             case 'pokemon':
-                handle_pokemon(action)
+                handle_pokemon(action[0])
             case _:
-                print(f"Unknown action type: {action.get('type')}")
+                print(f"Unknown action type: {action[0].get('type')}")
 
 def handle_move(action):
-    pass
+    print(f"Handling move action: {action}")
+    user = get_player_by_session_id(action.get('user_id'), active_players)
+    oppponent_session_id, opponent = find_opponent_in_room(action.get('user_id'), user.room_id)
+    if not user or not user.room_id:
+        emit('error', {'message': 'You are not in an active game'})
+        return
+    
+    move_list = user.selected_pokemon.get('learned_moves', [])
+    move = action.get('move')
+    if not move or move not in move_list:
+        emit('InvalidAction', {'message': 'Invalid move selection'})
+        raise InvalidAction('Invalid move selection')
+    
+    
 
 def handle_item(action):
     pass
 
 def handle_pokemon(action):
-    print(action)
+    print(f"Handling pokemon selection action: {action}")
     user = get_player_by_session_id(action.get('user_id'), active_players)
     print(list(p.get('id') for p in user.pokemon))
     if not user or not user.room_id:
