@@ -111,7 +111,8 @@ export default function Combat() {
                 <PokemonCard
                     key={pokemon.id}
                     pokemon={pokemon}
-                    disabled={false}
+                    isTraining={pokemon.is_training}
+                    disabled={pokemon.is_training}
                     buttonType="battle"
                     onChoose={choosePokemon}
                 />
