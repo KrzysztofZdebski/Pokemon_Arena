@@ -16,6 +16,8 @@ export default function Combat() {
     const [isReady, setIsReady] = useState(false);
     const [opponentUsername, setOpponentUsername] = useState("");
     const {username} = useContext(AuthContext);
+    const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
+
 
 
     // uniwersalna funkcja do ładowania pokemonów
@@ -56,6 +58,7 @@ export default function Combat() {
                         break;
                     }
                 }
+                setIsWaitingForOpponent(false);
                 setInBattle(true);
             },
         });
@@ -81,15 +84,18 @@ export default function Combat() {
         if (isReady) {
             socketService.emit("not_ready", { battleId: id });
             setIsReady(false);
+            setIsWaitingForOpponent(false); // przestań czekać
             return;
         }
         if (selectedPokemons.length < 1) {
             alert("You must select at least one pokemon to start the battle.");
             return;
         }
-        socketService.emit("ready", { battleId: id, pokemons: selectedPokemons })
+        socketService.emit("ready", { battleId: id, pokemons: selectedPokemons });
         setIsReady(true);
-    }
+        setIsWaitingForOpponent(true); // zaczynamy czekać
+    };
+
 
 
     return (
@@ -111,11 +117,20 @@ export default function Combat() {
                 />
                 ))}
             </div>
-            <button
-                className={`px-4 py-2 mt-4 text-lg font-semibold text-white rounded-lg ${isReady ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
-                onClick={ready}>
-                {isReady ? "Ready ✔" : "Not Ready ✕"}
-            </button>
+            <div className="flex flex-col items-center mt-4">
+                <button
+                    className={`px-4 py-2 text-lg font-semibold text-white rounded-lg ${isReady ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+                    onClick={ready}>
+                    {isReady ? "Ready ✔" : "Not Ready ✕"}
+                </button>
+
+                {isWaitingForOpponent && (
+                    <div className="flex flex-col items-center mt-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-white"></div>
+                        <p className="mt-2 text-white font-semibold">Looking for an opponent...</p>
+                    </div>
+                )}
+            </div>
             </>
         }
         </div>
