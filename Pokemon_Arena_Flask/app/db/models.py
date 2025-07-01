@@ -81,6 +81,7 @@ class Pokemon(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)  # PokeAPI ID
     name = db.Column(db.String(100), nullable=False)
+    level=db.Column(db.Integer, default=1)  # Default level for new Pokémon
 
     base_experience = db.Column(db.Integer)
     height = db.Column(db.Integer)
@@ -110,10 +111,51 @@ class Pokemon(db.Model):
     training_end_time = db.Column(db.DateTime, nullable=True)
     training_levels = db.Column(db.Integer, default=1)   
 
+    def available_moves(self, version_group=None):
+        level = getattr(self, 'level', 1)
+        allowed_methods = {'level-up', 'machine', 'tutor', 'egg'}
+        moves = []
+
+        for move in self.moves or []:
+            for detail in move.get("version_group_details", []):
+
+                if version_group and detail["version_group"]["name"] != version_group:
+                    continue
+
+                method = detail["move_learn_method"]["name"]
+
+
+                if method == 'level-up' and detail['level_learned_at'] <= level:
+                    moves.append({
+                        "name": move["move"]["name"],
+                        "url": move["move"]["url"],
+                        "method": method,
+                        "level_learned_at": detail['level_learned_at'],
+                    })
+
+                elif method in ('machine', 'tutor', 'egg'):
+                    moves.append({
+                        "name": move["move"]["name"],
+                        "url": move["move"]["url"],
+                        "method": method,
+                        "level_learned_at": detail.get('level_learned_at', 0),
+                    })
+
+        result = {}
+        for m in moves:
+            if m["name"] not in result or m["level_learned_at"] > result[m["name"]]["level_learned_at"]:
+                result[m["name"]] = m
+
+        return sorted(result.values(), key=lambda x: (x["level_learned_at"], x["name"]))
+
+
+
+
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
+            "level": self.level,
             "base_experience": self.base_experience,
             "height": self.height,
             "weight": self.weight,
@@ -123,7 +165,7 @@ class Pokemon(db.Model):
             "forms": self.forms,
             "held_items": self.held_items,
             "location_area_encounters": self.location_area_encounters,
-            "moves": self.moves,
+            "moves": self.moves,  
             "past_types": self.past_types,
             "past_abilities": self.past_abilities,
             "sprites": self.sprites,

@@ -4,7 +4,7 @@ import AuthContext from '../utils/authProvider';
 import authApi from '../utils/authApi';
 
 export default function BattleUI({ battleId, className = "", socket, pokemons, opponent_username }) {
-    const [currentMenu, setCurrentMenu] = useState('pokemon'); // 'main', 'fight', 'pokemon', 'bag', 'waiting'
+    const [currentMenu, setCurrentMenu] = useState('pokemon');
     const navigate = useNavigate();
     const [playerPokemons, setPlayerPokemons] = useState([]);
     const [playerPokemon, setPlayerPokemon] = useState(null);
@@ -15,6 +15,13 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [showBackButton, setShowBackButton] = useState(false);
     const [moves, setMoves] = useState([]);
+
+
+    const [showMovePicker, setShowMovePicker] = useState(false);
+    const [movePickerPokemon, setMovePickerPokemon] = useState(null);
+    const [movePickerMoves, setMovePickerMoves] = useState([]);
+    const [movePickerSelected, setMovePickerSelected] = useState([]);
+
 
     useEffect(() => {
         if (!battleStarted) {
@@ -30,7 +37,6 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
         if(waitingForOpponent) {
             setCurrentMenu('waiting');
         } else if (currentMenu === 'waiting') {
-            // When no longer waiting, return to appropriate menu
             if (battleStarted) {
                 setCurrentMenu('main');
             } else {
@@ -55,14 +61,6 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     const handleMenuAction = (action) => {
         setCurrentMenu(action);
     };
-
-    // const handleMoveSelect = (move) => {
-    //     // Emit move selection to socket
-    //     if (socket) {
-    //     socket.emit('battle_move', { battleId, move: move.name });
-    //     }
-    //     setCurrentMenu('main');
-    // };
 
     const handleRun = () => {
         const confirmed = window.confirm("Are you sure you want to run?");
@@ -140,19 +138,17 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
         }
     }, [pokemons]);
 
+
+    const openMovePicker = (pokemon) => {
+        setMovePickerPokemon(pokemon);
+        setMovePickerMoves(pokemon.available_moves || pokemon.learned_moves || pokemon.moves || []);
+        setMovePickerSelected([]); // Możesz tu wczytać zapisane ruchy, jeśli chcesz
+        setShowMovePicker(true);
+    };
+
+
+
     socket.updateCallbacks({
-        // onSelectedPokemon: (data) => {
-        //     console.log("Selected Pokemon:", data);
-        //     if (!data || !data.pokemon) {
-        //         console.error("Invalid Pokemon data received");
-        //         return;
-        //     }
-        //     if (data.player !== username) {
-        //         setOpponentPokemon(data.pokemon);
-        //         return;
-        //     }
-        //     setPlayerPokemon(data.pokemon);
-        // },
         onPokemonPrepared: (data) => {
             console.log("Battle started:", data);
             if (!data || !data.pokemon) {
@@ -197,7 +193,6 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
         }
     })
 
-    // Show loading state while fetching Pokemon data
     if (isLoading) {
         return (
             <div className={`battle-ui w-full h-full relative ${className} flex items-center justify-center`}>
@@ -350,13 +345,21 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 {currentMenu === 'pokemon' && (
                     <div className="grid h-full grid-cols-2 grid-rows-3 gap-2">
                     {playerPokemons.map((pokemon, index) => (
-                        <button
-                        key={index}
-                        onClick={playerPokemon ? () => handleSwitchPokemon(pokemon) : () => handlePokemonSelect(pokemon)}
-                        className="p-2 text-sm text-left bg-blue-800 border-2 border-white hover:bg-blue-700"
-                        >
-                        <div className="font-bold">{pokemon.name}</div>
-                        </button>
+                        <div key={index} className="relative group">
+                          <button
+                            onClick={playerPokemon ? () => handleSwitchPokemon(pokemon) : () => handlePokemonSelect(pokemon)}
+                            className="w-full p-2 text-sm text-left bg-blue-800 border-2 border-white rounded hover:bg-blue-700"
+                          >
+                            <div className="font-bold">{pokemon.name}</div>
+                            {/* Tu możesz dodać np. level, HP itp. */}
+                          </button>
+                          {/* Przycisk wyboru ruchów */}
+                          <button
+                            onClick={() => openMovePicker(pokemon)}
+                            className="absolute z-10 p-1 text-xs font-bold bg-yellow-400 rounded-full shadow-lg top-1 right-1 opacity-80 hover:opacity-100"
+                            title="Wybierz ruchy"
+                          ></button>
+                        </div>
                     ))}
                     </div>
                 )}
@@ -411,6 +414,49 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             </div>
             </div>
         </div>
+        {/* --- MODAL WYBORU RUCHÓW --- */}
+        {showMovePicker && movePickerPokemon && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="relative w-full max-w-sm p-6 bg-white rounded-lg shadow-2xl">
+              <button
+                className="absolute text-xl top-2 right-2"
+                onClick={() => setShowMovePicker(false)}
+              >✕</button>
+              <h2 className="mb-3 text-lg font-bold">
+                Wybierz 4 ruchy dla <span className="capitalize">{movePickerPokemon.name}</span>
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                {movePickerMoves.map((move, idx) => (
+                  <button
+                    key={move.name || move.move?.name || idx}
+                    className={`p-2 border rounded text-black ${movePickerSelected.includes(move.name) ? 'bg-yellow-300' : 'bg-gray-100'}`}
+                    onClick={() => {
+                      if (movePickerSelected.includes(move.name)) {
+                        setMovePickerSelected(movePickerSelected.filter(m => m !== move.name));
+                      } else if (movePickerSelected.length < 4) {
+                        setMovePickerSelected([...movePickerSelected, move.name]);
+                      }
+                    }}
+                  >
+                    {move.name || move.move?.name}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="px-4 py-2 mt-4 text-white bg-blue-600 rounded disabled:opacity-50"
+                disabled={movePickerSelected.length !== 4}
+                onClick={() => {
+                  // Tu możesz zrobić emit na backend lub update pokemona lokalnie
+                  alert('Wybrane ruchy: ' + movePickerSelected.join(', '));
+                  setShowMovePicker(false);
+                }}
+              >
+                Zapisz wybór
+              </button>
+            </div>
+          </div>
+        )}
+        {/* --- KONIEC MODALA --- */}
         </div>
     );
 }
