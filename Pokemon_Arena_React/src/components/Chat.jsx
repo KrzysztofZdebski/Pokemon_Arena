@@ -33,15 +33,15 @@ export function Chat({ messages, className = "", socket }) {
             socket.emit('send_text', {"message": message, "username": username});
         }
     }
-
+// TODO: chat widow changes size
     return (
         <div className={`flex flex-col max-w-lg p-1 mx-auto rounded-sm bg-chat-tan chat-container ${className}`}>
-            <div className="flex flex-col flex-1 w-full p-2 mx-auto overflow-hidden text-lg font-bold text-left border-4 border-chat-orange bg-chat-yellow">
+            <div className="flex flex-col flex-1 w-full p-2 mx-auto overflow-hidden font-bold text-left border-4 text-md border-chat-orange bg-chat-yellow">
                 <div ref={messagesContainerRef} className="flex-1 mb-2 overflow-y-auto chat-messages">
                     {messages.map((message, index) => (
                         <div key={index} className="break-words chat-message">
                             <span className="text-black chat-username">{message.username}: </span>
-                            <span className="text-gray-600 break-all chat-text">{message.text}</span>
+                            <span className="text-gray-600 break-words chat-text">{message.text}</span>
                         </div>
                     ))}
                     {/* Invisible element to scroll to */}

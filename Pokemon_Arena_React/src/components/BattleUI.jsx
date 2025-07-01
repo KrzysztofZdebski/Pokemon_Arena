@@ -96,6 +96,19 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     }
 
     const handleMoveSelect = (move) => {
+        if (socket) {
+            if (!playerPokemon || !move) {
+                console.error("Player Pokemon or move is not selected");
+                return;
+            }
+            if (move.PP <= 0) {
+                alert("This move has no PP left.");
+                return;
+            }
+            setWaitingForOpponent(true);
+            socket.emit('next_action', { action: { type: 'move', move: move.name } });
+        }
+        console.log("Selected Move:", move);
     }
 
     useEffect(() => {
@@ -174,6 +187,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             }
             setOpponentPokemon(data.game_state.players.find(p => p.username !== username).pokemon);
             setPlayerPokemon(data.game_state.players.find(p => p.username === username).pokemon);
+            setMoves(data.game_state.players.find(p => p.username === username).pokemon.learned_moves);
             setWaitingForOpponent(false);
         },
         onInvalidAction: (data) => {
@@ -200,7 +214,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             {/* Opponent Pokemon Area */}
             <div className="absolute top-4 left-4">
             {/* Opponent HP Bar */}
-            <div className="p-2 mb-2 bg-gray-700 border-4 border-black rounded-lg" style={{ fontFamily: 'monospace' }}>
+            <div className="h-20 p-2 mb-2 bg-gray-700 border-4 border-black rounded-lg w-60" style={{ fontFamily: 'monospace' }}>
                 {opponentPokemon === null ? 
                 <>
                 <div className="text-sm font-bold text-gray-400">Waiting for opponent...</div>
@@ -212,7 +226,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 </div>
                 <div className="flex items-center">
                 <span className="mr-2 text-xs font-bold text-yellow-600">HP</span>
-                <div className="w-24 h-2 bg-black border border-gray-600">
+                <div className="w-40 h-2 bg-black border border-gray-600">
                     <div 
                     className={`h-full transition-all duration-300 ${getHpBarColor(getHpPercentage(opponentPokemon.current_HP, opponentPokemon.max_HP))}`}
                     style={{ width: `${getHpPercentage(opponentPokemon.current_HP, opponentPokemon.max_HP)}%` }}
@@ -221,6 +235,21 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 </div>
                 </>}
             </div>
+            
+            {/* Opponent Pokemon Status Icons */}
+            {/* {opponentPokemon && (
+                <div className="flex gap-1 ml-2">
+                    {Array.from({ length: playerPokemons.length }, (_, index) => (
+                        <div
+                            key={index}
+                            className={`w-6 h-6 border-2 rounded-full ${
+                                index === 0 ? 'bg-green-400 border-green-600' : 'bg-gray-400 border-gray-600'
+                            }`}
+                            title={`Pokemon ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )} */}
             </div>
 
             {/* Opponent Pokemon Sprite */}
@@ -233,7 +262,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             {/* Player Pokemon Area */}
             <div className="absolute bottom-32 right-4">
             {/* Player HP Bar */}
-            <div className="p-2 mb-10 bg-gray-700 border-4 border-black rounded-lg" style={{ fontFamily: 'monospace' }}>
+            <div className="h-20 p-2 mb-1 bg-gray-700 border-4 border-black rounded-lg w-60" style={{ fontFamily: 'monospace' }}>
                 {playerPokemon === null ? 
                 <>
                 <div className="text-sm font-bold text-gray-400">Select a Pokémon</div>
@@ -245,26 +274,40 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 </div>
                 <div className="flex items-center mb-1">
                 <span className="mr-2 text-xs font-bold text-yellow-600">HP</span>
-                <div className="w-32 h-2 bg-black border border-gray-600">
+                <div className="w-40 h-2 bg-black border border-gray-600">
                     <div 
                     className={`h-full transition-all duration-300 ${getHpBarColor(getHpPercentage(playerPokemon.current_HP, playerPokemon.max_HP))}`}
                     style={{ width: `${getHpPercentage(playerPokemon.current_HP, playerPokemon.max_HP)}%` }}
                     />
                 </div>
-                <span className="ml-2 text-xs">{playerPokemon.currentHP}/{playerPokemon.max_HP}</span>
+                <span className="ml-2 text-xs">{playerPokemon.current_HP}/{playerPokemon.max_HP}</span>
                 </div>
                 <div className="flex items-center justify-between">
                 <div className="flex items-center">
                     <span className="px-1 mr-2 text-xs font-bold text-yellow-600 bg-yellow-200">{playerPokemon.status}</span>
                 </div>
-                {/* <div className="text-xs">
-                    <div className="w-16 h-1 bg-black border border-gray-600">
-                    <div className="h-full bg-blue-500" style={{ width: `${playerPokemon.exp}%` }}></div>
-                    </div>
-                </div> */}
                 </div>
                 </>}
             </div>
+            
+            {/* Player Pokemon Status Icons */}
+            {playerPokemon && (
+                <div className="flex justify-end gap-1 mb-10 mr-2">
+                    {playerPokemons.map((pokemon, index) => (
+                        <div
+                            key={index}
+                            className={`w-6 h-6 border-2 rounded-full ${
+                                pokemon.current_HP > 0 
+                                    ? pokemon.id === playerPokemon.id 
+                                        ? 'bg-green-400 border-green-600' 
+                                        : 'bg-blue-400 border-blue-600'
+                                    : 'bg-red-400 border-red-600'
+                            }`}
+                            title={`${pokemon.name} - ${pokemon.current_HP > 0 ? 'Healthy' : 'Fainted'}`}
+                        />
+                    ))}
+                </div>
+            )}
             </div>
 
             {/* Player Pokemon Sprite */}

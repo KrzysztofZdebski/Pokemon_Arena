@@ -1,3 +1,4 @@
+import random
 from flask_jwt_extended import jwt_required, current_user
 from flask_socketio import emit, join_room, leave_room, rooms, ConnectionRefusedError
 from app.extensions import socketio
@@ -176,7 +177,9 @@ def ready(data):
         hp_stat = next((stat for stat in pokemon_dict['stats'] if stat['stat']['name'] == 'hp'), None)
         pokemon_dict['max_HP'] = hp_stat['base_stat'] if hp_stat else 0
         pokemon_dict['current_HP'] = pokemon_dict['max_HP']
-        pokemon_dict['learned_moves'] = [{'name' : 'scratch', 'type' : {"name":"normal", "damage_relations":{"double_damage_from":[{"name":"fighting","url":"https://pokeapi.co/api/v2/type/2/"}],"double_damage_to":[],"half_damage_from":[],"half_damage_to":[{"name":"rock","url":"https://pokeapi.co/api/v2/type/6/"},{"name":"steel","url":"https://pokeapi.co/api/v2/type/9/"}],"no_damage_from":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}],"no_damage_to":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}]}}, 'power' : 0, 'accuracy' : 100, 'PP' : 35, 'maxPP' : 35}]
+        # TODO: replace with actual moves from the database
+        pokemon_dict['learned_moves'] = [{'damage_class':'physical', 'name' : 'scratch', 'type' : {"name":"water", "damage_relations":{"double_damage_from":[{"name":"fighting","url":"https://pokeapi.co/api/v2/type/2/"}],"double_damage_to":[],"half_damage_from":[],"half_damage_to":[{"name":"rock","url":"https://pokeapi.co/api/v2/type/6/"},{"name":"steel","url":"https://pokeapi.co/api/v2/type/9/"}],"no_damage_from":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}],"no_damage_to":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}]}}, 'power' : 40, 'accuracy' : 100, 'PP' : 10, 'maxPP' : 10}]
+        pokemon_dict['fainted'] = False
         pokemonData.append(pokemon_dict)
         
     player.set_pokemon(pokemonData)
@@ -398,7 +401,7 @@ def next_round(room_id):
         'players': [{'username': p.username} for p in room_players],
         'game_state': {
             'room_id': room_id,
-            'players': [{'username': p.username, 'pokemon': p.selected_pokemon} for p in room_players]
+            'players': [{'username': p.username, 'pokemon': p.selected_pokemon, 'pokemon_nbr' : len(p.pokemon), 'fainted_nbr' : len(list(filter(lambda x: x['fainted'], p.pokemon)))} for p in room_players]
         }
     }, to=room_id)
 
@@ -407,7 +410,8 @@ def find_speed(action):
     user = get_player_by_session_id(action.get('user_id'), active_players)
     if not user or not user.selected_pokemon:
         return 0
-    return user.selected_pokemon.get('stats', {}).get('speed', 0)
+    speed = next(p.get("base_stat") for p in user.selected_pokemon['stats'] if p.get("stat").get("name") == 'speed')
+    return speed
 
 def handle_actions(actions_data):
     user = get_player_by_session_id(actions_data[0][0].get('user_id'), active_players)
@@ -418,11 +422,11 @@ def handle_actions(actions_data):
     for action in actions_data:
         match action[0].get('type'):
             case 'move':
-                handle_move(action[0])
+                emit('receive_text', {"message" : {"text" : handle_move(action[0]), "username" : "prof. Oak"}}, to=user.room_id)
             case 'item':
-                handle_item(action[0])
+                emit('receive_text', {"message" : {"text" : handle_item(action[0]), "username" : "prof. Oak"}}, to=user.room_id)
             case 'pokemon':
-                handle_pokemon(action[0])
+                emit('receive_text', {"message" : {"text" : handle_pokemon(action[0]), "username" : "prof. Oak"}}, to=user.room_id)
             case _:
                 print(f"Unknown action type: {action[0].get('type')}")
 
@@ -430,17 +434,94 @@ def handle_move(action):
     print(f"Handling move action: {action}")
     user = get_player_by_session_id(action.get('user_id'), active_players)
     oppponent_session_id, opponent = find_opponent_in_room(action.get('user_id'), user.room_id)
+
     if not user or not user.room_id:
         emit('error', {'message': 'You are not in an active game'})
         return
+    if not opponent:
+        emit('error', {'message': 'Opponent not found or has no selected Pokemon'})
+        return
     
-    move_list = user.selected_pokemon.get('learned_moves', [])
-    move = action.get('move')
-    if not move or move not in move_list:
+    userPokemon = user.selected_pokemon
+    opponentPokemon = opponent.selected_pokemon
+    
+    move_list = list(map(lambda p: p.get("name"), userPokemon.get('learned_moves', [])))
+    move_name = action.get('move')
+    print(f"User {user.username} is trying to use move: {move_name} from {move_list}")
+    
+    # Find the move index to update PP directly in the array
+    move_index = None
+    move = None
+    for i, m in enumerate(userPokemon.get('learned_moves', [])):
+        if m.get('name') == move_name:
+            move_index = i
+            move = m
+            break
+
+    if not move_name or move_name not in move_list:
         emit('InvalidAction', {'message': 'Invalid move selection'})
         raise InvalidAction('Invalid move selection')
+    if move.get('PP', 0) <= 0:
+        emit('InvalidAction', {'message': 'Move has no PP left'})
+        raise InvalidAction('Move has no PP left')
     
+    # Decrement PP directly in the Pokemon's learned_moves array
+    userPokemon['learned_moves'][move_index]['PP'] -= 1
     
+    accuracy = move.get('accuracy', 100)
+
+    if accuracy < random.randint(0, 100):
+        message = f"{userPokemon.get('name')} used {move_name}, but it missed!"
+        return message
+
+    crit_threshold = find_speed(action) / 2
+    crit = int(random.randint(0, 255) <= crit_threshold) + 1
+    level = userPokemon.get('level', 1)
+    power = move.get('power', 0)
+    # print(f"Calculating damage for move: {move}, class: {move.get('damage_class', {})})")
+    if move.get('damage_class', {}) == 'physical':
+        attack = next(p.get("base_stat") for p in userPokemon['stats'] if p.get("stat").get("name") == 'attack')
+        defense = next(p.get("base_stat") for p in opponentPokemon['stats'] if p.get("stat").get("name") == 'defense')
+    elif move.get('damage_class', {}) == 'special':
+        attack = next(p.get("base_stat") for p in userPokemon['stats'] if p.get("stat").get("name") == 'special-attack')
+        defense = next(p.get("base_stat") for p in opponentPokemon['stats'] if p.get("stat").get("name") == 'special-defense')
+
+    move_type = move.get('type', {}).get('name')
+    target_types = [t['type'].get('name') for t in opponentPokemon['types']]
+    print(f"Calculating damage for move type: {move_type}, target types: {target_types}")
+    print(opponentPokemon['types'])
+    type_multiplier = damage_by_type(move_type, target_types)
+    random_multiplier = random.uniform(217, 255) / 255
+
+    damage = ((((((2 * level * crit / 5) + 2) * power * attack / defense) / 50) + 2)  * type_multiplier * random_multiplier)
+    damage = int(damage)
+    print(f"Damage calculated: {damage} (Crit: {crit}, Level: {level}, Power: {power}, Attack: {attack}, Defense: {defense}, Type Multiplier: {type_multiplier}, Random Multiplier: {random_multiplier})")
+    print(f"Move {move_name} PP remaining: {userPokemon['learned_moves'][move_index]['PP']}")
+    opponentPokemon['current_HP'] -= damage
+    if opponentPokemon['current_HP'] <= 0:
+        faint(opponentPokemon, user.user_id)
+
+    message = ""
+    if type_multiplier > 1:
+        message = f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's super effective! It dealt {damage} damage!"
+    elif type_multiplier < 1:
+        message = f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's not very effective... It dealt {damage} damage!"
+    else:
+        message = f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It dealt {damage} damage!"
+
+    return message
+
+    
+def faint(pokemon, user_id):
+    """Handle fainting a Pokemon"""
+    if (pokemon['current_HP'] <= 0):
+        pokemon['fainted'] = True
+        print(f"{pokemon['name']} has fainted!")
+        emit('pokemon_fainted', {
+            'message': f"{pokemon['name']} has fainted!",
+            'pokemon_id': pokemon['id'],
+            'player_id': user_id,
+        }, to=pokemon.get('room_id'))
 
 def handle_item(action):
     pass
@@ -458,6 +539,90 @@ def handle_pokemon(action):
         raise InvalidAction('Invalid Pokemon selection')
     
     user.select_pokemon(next((p for p in user.pokemon if p.get('id') == action.get('pokemon_id') )))
+    return f"{user.username} has selected {user.selected_pokemon.get('name')} as their active Pokemon!"
+
+def damage_by_type(move_type, target_types):
+    """
+    Calculate type effectiveness multiplier based on Pokemon type chart.
+    
+    Args:
+        move_type (str): The type of the attacking move
+        target_types (list): List of types of the defending Pokemon (can be 1 or 2 types)
+    
+    Returns:
+        float: Damage multiplier (0, 0.5, 1, or 2)
+    """
+    # Type effectiveness chart - attacking type vs defending type
+    # 2.0 = super effective, 0.5 = not very effective, 0.0 = no effect, 1.0 = normal
+    type_chart = {
+        'normal': {
+            'fighting': 2.0, 'ghost': 0.0
+        },
+        'fire': {
+            'fire': 0.5, 'water': 0.5, 'grass': 2.0, 'ice': 2.0, 'bug': 2.0, 'rock': 0.5, 'dragon': 0.5, 'steel': 2.0
+        },
+        'water': {
+            'fire': 2.0, 'water': 0.5, 'grass': 0.5, 'ground': 2.0, 'rock': 2.0, 'dragon': 0.5
+        },
+        'grass': {
+            'fire': 0.5, 'water': 2.0, 'grass': 0.5, 'poison': 0.5, 'ground': 2.0, 'flying': 0.5, 'bug': 0.5, 'rock': 2.0, 'dragon': 0.5, 'steel': 0.5
+        },
+        'electric': {
+            'water': 2.0, 'grass': 0.5, 'electric': 0.5, 'ground': 0.0, 'flying': 2.0, 'dragon': 0.5
+        },
+        'ice': {
+            'fire': 0.5, 'water': 0.5, 'grass': 2.0, 'ice': 0.5, 'ground': 2.0, 'flying': 2.0, 'dragon': 2.0, 'steel': 0.5
+        },
+        'fighting': {
+            'normal': 2.0, 'ice': 2.0, 'poison': 0.5, 'flying': 0.5, 'psychic': 0.5, 'bug': 0.5, 'rock': 2.0, 'ghost': 0.0, 'dark': 2.0, 'steel': 2.0, 'fairy': 0.5
+        },
+        'poison': {
+            'grass': 2.0, 'poison': 0.5, 'ground': 0.5, 'rock': 0.5, 'ghost': 0.5, 'steel': 0.0, 'fairy': 2.0
+        },
+        'ground': {
+            'fire': 2.0, 'grass': 0.5, 'electric': 2.0, 'poison': 2.0, 'flying': 0.0, 'bug': 0.5, 'rock': 2.0, 'steel': 2.0
+        },
+        'flying': {
+            'electric': 0.5, 'grass': 2.0, 'ice': 0.5, 'fighting': 2.0, 'bug': 2.0, 'rock': 0.5, 'steel': 0.5
+        },
+        'psychic': {
+            'fighting': 2.0, 'poison': 2.0, 'psychic': 0.5, 'dark': 0.0, 'steel': 0.5
+        },
+        'bug': {
+            'fire': 0.5, 'grass': 2.0, 'fighting': 0.5, 'poison': 0.5, 'flying': 0.5, 'psychic': 2.0, 'ghost': 0.5, 'dark': 2.0, 'steel': 0.5, 'fairy': 0.5
+        },
+        'rock': {
+            'fire': 2.0, 'ice': 2.0, 'fighting': 0.5, 'ground': 0.5, 'flying': 2.0, 'bug': 2.0, 'steel': 0.5
+        },
+        'ghost': {
+            'normal': 0.0, 'psychic': 2.0, 'ghost': 2.0, 'dark': 0.5
+        },
+        'dragon': {
+            'dragon': 2.0, 'steel': 0.5, 'fairy': 0.0
+        },
+        'dark': {
+            'fighting': 0.5, 'psychic': 2.0, 'ghost': 2.0, 'dark': 0.5, 'fairy': 0.5
+        },
+        'steel': {
+            'fire': 0.5, 'water': 0.5, 'electric': 0.5, 'ice': 2.0, 'rock': 2.0, 'steel': 0.5, 'fairy': 2.0
+        },
+        'fairy': {
+            'fire': 0.5, 'fighting': 2.0, 'poison': 0.5, 'dragon': 2.0, 'dark': 2.0, 'steel': 0.5
+        }
+    }
+    
+    # Start with normal effectiveness
+    total_multiplier = 1.0
+    
+    # Get the effectiveness chart for the attacking move type
+    move_effectiveness = type_chart.get(move_type.lower(), {})
+    
+    # Calculate multiplier for each defending type
+    for target_type in target_types:
+        type_multiplier = move_effectiveness.get(target_type.lower(), 1.0)
+        total_multiplier *= type_multiplier
+    
+    return total_multiplier
 
 class InvalidAction(Exception):
     """Custom exception for invalid actions in the battle"""
