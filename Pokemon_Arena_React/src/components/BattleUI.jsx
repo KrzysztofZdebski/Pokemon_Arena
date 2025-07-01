@@ -17,6 +17,8 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     const [moves, setMoves] = useState([]);
     const [opponentPokemonCount, setOpponentPokemonCount] = useState({ total: 0, fainted: 0 });
     const [playerPokemonCount, setPlayerPokemonCount] = useState({ total: 0, fainted: 0 });
+    const [playerStatusList, setPlayerStatusList] = useState([]);
+    const [opponentStatusList, setOpponentStatusList] = useState([]);
 
     useEffect(() => {
         console.log("BattleUI mounted with battleId:", battleId);
@@ -54,6 +56,51 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
         if (percentage > 50) return 'bg-green-500';
         if (percentage > 20) return 'bg-yellow-500';
         return 'bg-red-500';
+    };
+
+    const getStatusColor = (statusName) => {
+        switch (statusName.toLowerCase()) {
+            case 'burn':
+                return 'bg-red-600';           // Fire/burning effect
+            case 'poison':
+                return 'bg-purple-600';        // Toxic/poison effect
+            case 'paralysis':
+                return 'bg-yellow-600';        // Electric/lightning effect
+            case 'sleep':
+                return 'bg-blue-600';          // Calm/drowsy effect
+            case 'freeze':
+                return 'bg-cyan-600';          // Ice/cold effect
+            case 'confusion':
+                return 'bg-pink-600';          // Psychic/mental effect
+            case 'infatuation':
+                return 'bg-rose-600';          // Love/charm effect
+            case 'trap':
+                return 'bg-gray-600';          // Trapped/bound effect
+            case 'nightmare':
+                return 'bg-black';             // Dark/scary effect
+            case 'torment':
+                return 'bg-orange-600';        // Frustration/anger effect
+            case 'disable':
+                return 'bg-slate-600';         // Disabled/blocked effect
+            case 'yawn':
+                return 'bg-indigo-600';        // Drowsy/sleepy effect
+            case 'heal-block':
+                return 'bg-red-800';           // Healing prevention
+            case 'leech-seed':
+                return 'bg-green-600';         // Nature/grass effect
+            case 'embargo':
+                return 'bg-amber-600';         // Restriction/limitation
+            case 'perish-song':
+                return 'bg-violet-900';        // Death/doom effect
+            case 'ingrain':
+                return 'bg-emerald-600';       // Rooted/nature effect
+            case 'no-type-immunity':
+                return 'bg-neutral-600';       // Neutral/nullified effect
+            case 'unknown':
+            case 'none':
+            default:
+                return 'bg-gray-500';          // Default/unknown effect
+        }
     };
 
     const handleMenuAction = (action) => {
@@ -189,11 +236,12 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             
             if(opponentData.pokemon){ {   
                 setOpponentPokemon(opponentData.pokemon);
+                setOpponentStatusList(opponentData.pokemon.status_list || []);
             }
             if(playerData.pokemon){
                 setPlayerPokemon(playerData.pokemon);
                 setMoves(playerData.pokemon.learned_moves);
-                
+                setPlayerStatusList(playerData.pokemon.status_list || []);
             }
 
             setOpponentPokemonCount({
@@ -251,7 +299,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             {/* Opponent Pokemon Area */}
             <div className="absolute top-4 left-4">
             {/* Opponent HP Bar */}
-            <div className="h-20 p-2 mb-2 bg-gray-700 border-4 border-black rounded-lg w-60" style={{ fontFamily: 'monospace' }}>
+            <div className="h-24 p-2 mb-2 bg-gray-700 border-4 border-black rounded-lg w-60" style={{ fontFamily: 'monospace' }}>
                 {opponentPokemon === null ? 
                 <>
                 <div className="text-sm font-bold text-gray-400">Waiting for opponent...</div>
@@ -271,7 +319,23 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 </div>
                 </div>
                 </>}
+                {/* Opponent Status Effects */}
+                {opponentPokemon && opponentStatusList.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2 mb-2 ml-2">
+                        {opponentStatusList.map((status, index) => (
+                            <span
+                                key={index}
+                                className={`px-2 py-1 text-xs font-bold text-white rounded ${getStatusColor(status.name)}`}
+                                title={`${status.name} - ${status.duration || 'Unknown'} turns left`}
+                            >
+                                {status.name.toUpperCase()}
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
+            
+            
             
             {/* Opponent Pokemon Status Icons */}
             {opponentPokemon && (
@@ -305,7 +369,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             {/* Player Pokemon Area */}
             <div className="absolute mb-10 bottom-32 right-4">
             {/* Player HP Bar */}
-            <div className="h-20 p-2 mb-1 bg-gray-700 border-4 border-black rounded-lg w-60" style={{ fontFamily: 'monospace' }}>
+            <div className="h-24 p-2 mb-2 bg-gray-700 border-4 border-black rounded-lg w-60" style={{ fontFamily: 'monospace' }}>
                 {playerPokemon === null ? 
                 <>
                 <div className="text-sm font-bold text-gray-400">Select a Pokémon</div>
@@ -315,7 +379,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 <span className="text-sm font-bold">{playerPokemon.name}</span>
                 <span className="text-sm font-bold">Lv.{playerPokemon.level}</span>
                 </div>
-                <div className="flex items-center mb-1">
+                <div className="flex items-center">
                 <span className="mr-2 text-xs font-bold text-yellow-600">HP</span>
                 <div className="w-40 h-2 bg-black border border-gray-600">
                     <div 
@@ -325,13 +389,24 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 </div>
                 <span className="ml-2 text-xs">{playerPokemon.current_HP}/{playerPokemon.max_HP}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                    <span className="px-1 mr-2 text-xs font-bold text-yellow-600 bg-yellow-200">{playerPokemon.status}</span>
-                </div>
-                </div>
                 </>}
+                {/* Player Status Effects */}
+                {playerPokemon && playerStatusList.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2 mb-2 ml-2">
+                        {playerStatusList.map((status, index) => (
+                            <span
+                                key={index}
+                                className={`px-2 py-1 text-xs font-bold text-white rounded ${getStatusColor(status.name)}`}
+                                title={`${status.name} - ${status.duration || 'Unknown'} turns left`}
+                            >
+                                {status.name.toUpperCase()}
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
+            
+            
             
             {/* Player Pokemon Status Icons */}
             {playerPokemon && (

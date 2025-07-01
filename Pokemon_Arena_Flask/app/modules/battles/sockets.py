@@ -182,6 +182,7 @@ def ready(data):
         # pokemon_dict['learned_moves'] = [{'damage_class':'physical', 'name' : 'scratch', 'type' : {"name":"water", "damage_relations":{"double_damage_from":[{"name":"fighting","url":"https://pokeapi.co/api/v2/type/2/"}],"double_damage_to":[],"half_damage_from":[],"half_damage_to":[{"name":"rock","url":"https://pokeapi.co/api/v2/type/6/"},{"name":"steel","url":"https://pokeapi.co/api/v2/type/9/"}],"no_damage_from":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}],"no_damage_to":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}]}}, 'power' : 40, 'accuracy' : 100, 'PP' : 10, 'maxPP' : 10}]
         pokemon_dict['learned_moves'] = get_moves(pokemon_dict['moves'])
         pokemon_dict['fainted'] = False
+        pokemon_dict['status_list'] = []
         pokemonData.append(pokemon_dict)
         
     player.set_pokemon(pokemonData)
@@ -225,56 +226,6 @@ def not_ready(data):
         emit('error', {'message': 'You are not in an active game'})
         return
     player.set_ready(False)
-
-# @socketio.on('choose_pokemon')
-# def choose_pokemon(data):
-#     """Handle choosing a Pokemon for the battle"""
-#     userID = request.sid
-#     player = get_player_by_session_id(userID, active_players)
-#     pokemon_id = data.get('pokemon_id')
-#     print(f'Player {player.username} ({userID}) is choosing Pokemon with ID: {pokemon_id}')
-#     print(data)
-    
-#     if not player or not player.room_id:
-#         emit('error', {'message': 'You are not in an active game'})
-#         return
-    
-#     if not pokemon_id:
-#         emit('error', {'message': 'Pokemon ID is required'})
-#         return
-    
-#     # Fetch Pokemon data from the database
-#     pokemon = next((p for p in player.pokemon if p.get('id') == pokemon_id))
-#     # print(f'Pokemon chosen: {pokemon}')
-#     if not pokemon:
-#         emit('error', {'message': 'Pokemon not found'})
-#         return
-    
-#     player.select_pokemon(pokemon)
-    
-#     print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.get("name")}')
-    
-#     opponent_id, opponent = find_opponent_in_room(userID, player.room_id)
-#     if not opponent:
-#         emit('error', {'message': 'Opponent not found in the room'})
-#         return
-    
-#     if opponent.selected_pokemon:
-#         # If opponent has already selected a Pokemon, notify both players
-#         # time.sleep(2)
-#         emit('pokemon_prepared', {
-#             'message': f'{player.username} and {opponent.username} have chosen their Pokemon!',
-#             'pokemon': {
-#                 'player1' : {
-#                     'username': player.username,
-#                     'pokemon': player.selected_pokemon
-#                 },
-#                 'player2' : {
-#                     'username': opponent.username,
-#                     'pokemon': opponent.selected_pokemon
-#                 }
-#             }
-#         }, to=player.room_id)
 
 @socketio.on('next_action')
 def next_action(data):
@@ -393,6 +344,8 @@ def next_round(room_id):
 
     actions.sort(key=lambda x: x[1], reverse=True)  # Sort actions by priority
     try:
+        for player in room_players:
+            handleStatusEffects(player) 
         handle_actions(actions)
     except InvalidAction as e:
         return
@@ -488,6 +441,7 @@ def handle_move(action):
         message = handleStatusMove(move, userPokemon, opponentPokemon)
         return message
     
+    messages = []
     accuracy = move.get('accuracy', 100)
     checkAcc = True
     if accuracy is None:
@@ -513,15 +467,15 @@ def handle_move(action):
     if opponentPokemon['current_HP'] <= 0:
         faint(opponentPokemon, find_opponent_in_room(user.user_id, user.room_id)[1])
 
-    message = ""
     if type_multiplier > 1:
-        message = f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's super effective! It dealt {damage} damage!"
+        messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's super effective! It dealt {damage} damage!")
     elif type_multiplier < 1:
-        message = f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's not very effective... It dealt {damage} damage!"
+        messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's not very effective... It dealt {damage} damage!")
     else:
-        message = f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It dealt {damage} damage!"
+        messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It dealt {damage} damage!")
+    messages.append(apply_status_effects(move, opponentPokemon))
 
-    return message
+    return " ".join(messages)
 
     
 def faint(pokemon, player):
@@ -659,7 +613,120 @@ def get_moves(moves):
     return learned_moves
 
 def handleStatusMove(move, userPokemon, opponentPokemon):
-    return "status move"
+    """Handle status moves that affect stats, conditions, etc."""
+    move_name = move.get('name', 'Unknown Move')
+    stat_changes = move.get('stat_changes', [])
+    target = (userPokemon if move.get('target').get('name') == 'user' else opponentPokemon)
+    messages = []
+    
+    # Handle stat changes
+    if stat_changes:
+        for stat_change in stat_changes:
+            stat_name = stat_change['stat']['name']
+            change_amount = stat_change['change']
+            
+            # Find the stat in the Pokemon's stats array
+            for stat in target['stats']:
+                if stat['stat']['name'] == stat_name:
+                    # Calculate the change based on stages
+                    base_value = stat['base_stat']
+                    
+                    # Calculate stage multiplier
+                    if change_amount >= 0:
+                        multiplier = (2 + change_amount) / 2
+                    else:
+                        multiplier = 2 / (2 + abs(change_amount))
+                    
+                    # Apply the change to base_stat (but don't go below 1)
+                    new_value = max(1, int(base_value * multiplier))
+                    stat['base_stat'] = new_value
+                    
+                    # Generate appropriate message based on change amount
+                    if change_amount == 2:
+                        intensity = "sharply"
+                    elif change_amount == 1:
+                        intensity = ""
+                    elif change_amount >= 3:
+                        intensity = "drastically"
+                    else:
+                        intensity = "slightly"
+                    
+                    direction = "raised" if change_amount > 0 else "lowered"
+                    stat_display = stat_name.replace('-', ' ').title()
+                    
+                    if intensity:
+                        message = f"{target.get('name')}'s {stat_display} was {intensity} {direction}!"
+                    else:
+                        message = f"{target.get('name')}'s {stat_display} was {direction}!"
+                    
+                    messages.append(message)
+                    break
+        
+    
+    messages.append(apply_status_effects(move, target))
+    return f"{userPokemon.get('name')} used {move_name}! " + " ".join(messages)
+    
+
+def apply_status_effects(move, target):
+    messages = []
+    move_name = move.get('name', 'Unknown Move')
+    meta = move.get('meta', {})
+    effect_entries = meta.get('ailment', {})
+
+    if effect_entries:
+        # For now, return a generic message
+        effect_name = effect_entries.get('name', 'Unknown effect')
+        if not effect_name or effect_name == 'none':
+            return ""
+        messages.append(f"{target.get('name')} is affected by {move_name}: {effect_name}")
+        target['status_list'].append({
+            'name': effect_name,
+            'duration': (1 if meta.get('min_turns') == None else random.randint(meta.get('min_turns', 1), meta.get('max_turns', 3))) # Random duration between min and max turns
+        })
+    return " ".join(messages) if messages else f"{target.get('name')} is unaffected by {move_name}."
+    
+def handleStatusEffects(player):
+    """Handle status effects at the end of each round"""
+    print(f"Handling status effects for player {player.username}")
+    for pokemon in player.pokemon:
+        if pokemon.get('status_list'):
+            print(f"Handling status list {pokemon.get('status_list')}")
+            for status in pokemon['status_list']:
+                print(f"Handling status: {status}")
+                # Handle each status effect
+                if status['name'] == 'poison':
+                    if pokemon['types'] and any(t['type']['name'] == 'poison' or t['type']['name'] == 'steel' for t in pokemon['types']):
+                        print(f"{pokemon.get('name')} is immune to poison due to its type!")
+                        emit('receive_text', {
+                            "message": {"text": f"{pokemon.get('name')} is immune to poison due to its type!", "username": "prof. Oak"}
+                        }, to=player.room_id)
+                    else:
+                        pokemon['current_HP'] -= int(pokemon.get('max_HP', 0) / 16)
+                        print(f"{pokemon.get('name')} is poisoned! DMG: {int(pokemon.get('max_HP', 0) / 16)}")
+                        emit('receive_text', {
+                            "message": {"text": f"{pokemon.get('name')} is poisoned! DMG: {int(pokemon.get('max_HP', 0) / 16)}", "username": "prof. Oak"}
+                        }, to=player.room_id)
+                elif status['name'] == 'burn':
+                    if pokemon['types'] and any(t['type']['name'] == 'fire' for t in pokemon['types']):
+                        print(f"{pokemon.get('name')} is immune to poison due to its type!")
+                        emit('receive_text', {
+                            "message": {"text": f"{pokemon.get('name')} is immune to burn due to its type!", "username": "prof. Oak"}
+                        }, to=player.room_id)
+                    else:
+                        pokemon['current_HP'] -= int(pokemon.get('max_HP', 0) / 16)
+                        print(f"{pokemon.get('name')} is burned! DMG: {int(pokemon.get('max_HP', 0) / 16)}")
+                        emit('receive_text', {
+                            "message": {"text": f"{pokemon.get('name')} is burned! DMG: {int(pokemon.get('max_HP', 0) / 16)}", "username": "prof. Oak"}
+                        }, to=player.room_id)
+                # Add more status effects as needed
+                
+                # Decrease duration and remove if expired
+                status['duration'] -= 1
+                if status['duration'] <= 0:
+                    pokemon['status_list'].remove(status)
+                    print(f"{pokemon.get('name')} is no longer affected by {status['name']}.")
+
+
 class InvalidAction(Exception):
     """Custom exception for invalid actions in the battle"""
     def __init__(self, message):
