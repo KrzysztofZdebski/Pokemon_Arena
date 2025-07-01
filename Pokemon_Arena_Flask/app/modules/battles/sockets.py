@@ -6,7 +6,7 @@ from requests import get
 from app.db.models import Pokemon
 import time
 from app.db.models import User
-
+import random
 
 class Player:
     def __init__(self, user_id, username, points):
@@ -250,54 +250,84 @@ def not_ready(data):
         return
     player.set_ready(False)
 
+
 @socketio.on('choose_pokemon')
 def choose_pokemon(data):
-    """Handle choosing a Pokemon for the battle"""
     userID = request.sid
     player = get_player_by_session_id(userID, active_players)
     pokemon_id = data.get('pokemon_id')
-    print(f'Player {player.username} ({userID}) is choosing Pokemon with ID: {pokemon_id}')
-    print(data)
-    
+    chosen_moves = data.get('chosen_moves')  # może nie być podane
+
     if not player or not player.room_id:
         emit('error', {'message': 'You are not in an active game'})
         return
-    
+
     if not pokemon_id:
         emit('error', {'message': 'Pokemon ID is required'})
         return
-    
-    # Fetch Pokemon data from the database
+
     pokemon = Pokemon.get_by_id(pokemon_id)
     if not pokemon:
         emit('error', {'message': 'Pokemon not found'})
         return
-    
-    player.select_pokemon(pokemon.to_dict())
-    
-    print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.name}')
-    
+
+    available_moves = pokemon.available_moves()
+    available_move_names = {m['name'] for m in available_moves}
+
+    # --- PRZYPADKI: ---
+    if not chosen_moves:
+        # Zwróć ruchy do wyboru dla frontendu
+        emit('choose_moves', {
+            'pokemon_id': pokemon.id,
+            'pokemon_name': pokemon.name,
+            'available_moves': available_moves,
+            'message': f"Choose 4 moves for {pokemon.name}"
+        })
+        return
+
+    if len(chosen_moves) != 4:
+        emit('error', {'message': 'Please select exactly 4 moves.'})
+        return
+
+    if not all(move in available_move_names for move in chosen_moves):
+        emit('error', {'message': 'Some selected moves are not available for this Pokemon at its level.'})
+        return
+
+    chosen_move_dicts = [m for m in available_moves if m['name'] in chosen_moves]
+    p_dict = pokemon.to_dict()
+    p_dict['available_moves'] = chosen_move_dicts
+    player.select_pokemon(p_dict)
+
+    print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.name} with moves: {chosen_moves}')
+
     opponent_id, opponent = find_opponent_in_room(userID, player.room_id)
     if not opponent:
         emit('error', {'message': 'Opponent not found in the room'})
         return
-    
+
     if opponent.selected_pokemon:
-        # If opponent has already selected a Pokemon, notify both players
-        # time.sleep(2)
+        opp_pokemon = Pokemon.get_by_id(opponent.selected_pokemon['id'])
+        opp_moves = opp_pokemon.available_moves()
+        opp_chosen_moves = random.sample(opp_moves, min(4, len(opp_moves)))  
+        opp_poke_dict = opp_pokemon.to_dict()
+        opp_poke_dict['available_moves'] = opp_chosen_moves
+        opponent.select_pokemon(opp_poke_dict)
+
         emit('pokemon_prepared', {
             'message': f'{player.username} and {opponent.username} have chosen their Pokemon!',
             'pokemon': {
-                'player1' : {
+                'player1': {
                     'username': player.username,
                     'pokemon': player.selected_pokemon
                 },
-                'player2' : {
+                'player2': {
                     'username': opponent.username,
                     'pokemon': opponent.selected_pokemon
                 }
             }
         }, to=player.room_id)
+
+
 
 @socketio.on('next_action')
 def next_action(data):
