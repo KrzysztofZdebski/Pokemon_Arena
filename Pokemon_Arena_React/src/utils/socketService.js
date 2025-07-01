@@ -21,6 +21,7 @@ class SocketService {
             onPokemonPrepared: null,
             onNextRound: null,
             onInvalidAction: null,
+            onPokemonFainted: null,
         };
         console.log("SocketService constructor");
         this.reconnectCtr = 0;
@@ -163,6 +164,14 @@ class SocketService {
             // Handle invalid action, e.g., show an error message
             if (this.callbacks.onInvalidAction) {
                 this.callbacks.onInvalidAction(data);
+            }
+        });
+
+        this.socket.on('pokemon_fainted', (data) => {
+            console.log("Pokemon fainted:", data);
+            // Handle pokemon fainted event, e.g., update UI or state
+            if (this.callbacks.onPokemonFainted) {
+                this.callbacks.onPokemonFainted(data);
             }
         });
     }

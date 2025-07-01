@@ -1,6 +1,7 @@
 import random
 from flask_jwt_extended import jwt_required, current_user
 from flask_socketio import emit, join_room, leave_room, rooms, ConnectionRefusedError
+import requests
 from app.extensions import socketio
 from flask import Flask, request
 from requests import get
@@ -178,13 +179,14 @@ def ready(data):
         pokemon_dict['max_HP'] = hp_stat['base_stat'] if hp_stat else 0
         pokemon_dict['current_HP'] = pokemon_dict['max_HP']
         # TODO: replace with actual moves from the database
-        pokemon_dict['learned_moves'] = [{'damage_class':'physical', 'name' : 'scratch', 'type' : {"name":"water", "damage_relations":{"double_damage_from":[{"name":"fighting","url":"https://pokeapi.co/api/v2/type/2/"}],"double_damage_to":[],"half_damage_from":[],"half_damage_to":[{"name":"rock","url":"https://pokeapi.co/api/v2/type/6/"},{"name":"steel","url":"https://pokeapi.co/api/v2/type/9/"}],"no_damage_from":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}],"no_damage_to":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}]}}, 'power' : 40, 'accuracy' : 100, 'PP' : 10, 'maxPP' : 10}]
+        # pokemon_dict['learned_moves'] = [{'damage_class':'physical', 'name' : 'scratch', 'type' : {"name":"water", "damage_relations":{"double_damage_from":[{"name":"fighting","url":"https://pokeapi.co/api/v2/type/2/"}],"double_damage_to":[],"half_damage_from":[],"half_damage_to":[{"name":"rock","url":"https://pokeapi.co/api/v2/type/6/"},{"name":"steel","url":"https://pokeapi.co/api/v2/type/9/"}],"no_damage_from":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}],"no_damage_to":[{"name":"ghost","url":"https://pokeapi.co/api/v2/type/8/"}]}}, 'power' : 40, 'accuracy' : 100, 'PP' : 10, 'maxPP' : 10}]
+        pokemon_dict['learned_moves'] = get_moves(pokemon_dict['moves'])
         pokemon_dict['fainted'] = False
         pokemonData.append(pokemon_dict)
         
     player.set_pokemon(pokemonData)
-    with open('Pokemon_Arena_Flask/app/logs/pokemon.log', 'a') as f:
-        print(json.dumps(player.pokemon), file=f)
+    # with open('Pokemon_Arena_Flask/app/logs/pokemon.log', 'a') as f:
+    #     print(json.dumps(player.pokemon), file=f)
 
     room_id = player.room_id
     print(f'Player {player.username} ({userID}) is ready')
@@ -467,24 +469,34 @@ def handle_move(action):
     
     # Decrement PP directly in the Pokemon's learned_moves array
     userPokemon['learned_moves'][move_index]['PP'] -= 1
-    
-    accuracy = move.get('accuracy', 100)
-
-    if accuracy < random.randint(0, 100):
-        message = f"{userPokemon.get('name')} used {move_name}, but it missed!"
-        return message
+    print(f"Calculating damage for move: {move.get('name')}, class: {move.get('damage_class', {}).get('name')})")
 
     crit_threshold = find_speed(action) / 2
     crit = int(random.randint(0, 255) <= crit_threshold) + 1
     level = userPokemon.get('level', 1)
     power = move.get('power', 0)
-    # print(f"Calculating damage for move: {move}, class: {move.get('damage_class', {})})")
-    if move.get('damage_class', {}) == 'physical':
+    # print(move)
+    # print(power)
+    if move.get('damage_class', {}).get('name') == 'physical':
         attack = next(p.get("base_stat") for p in userPokemon['stats'] if p.get("stat").get("name") == 'attack')
         defense = next(p.get("base_stat") for p in opponentPokemon['stats'] if p.get("stat").get("name") == 'defense')
-    elif move.get('damage_class', {}) == 'special':
+    elif move.get('damage_class', {}).get('name') == 'special':
         attack = next(p.get("base_stat") for p in userPokemon['stats'] if p.get("stat").get("name") == 'special-attack')
         defense = next(p.get("base_stat") for p in opponentPokemon['stats'] if p.get("stat").get("name") == 'special-defense')
+    else: # Should only happen for class == 'status' but better be safe
+        print(f"Using move with no damage, class: {move.get('damage_class', {}).get('name')}")
+        message = handleStatusMove(move, userPokemon, opponentPokemon)
+        return message
+    
+    accuracy = move.get('accuracy', 100)
+    checkAcc = True
+    if accuracy is None:
+        checkAcc = False
+    print(f"Move accuracy: {accuracy}, Crit threshold: {crit_threshold}, Crit: {crit}")
+
+    if checkAcc and accuracy < random.randint(0, 100):
+        message = f"{userPokemon.get('name')} used {move_name}, but it missed!"
+        return message
 
     move_type = move.get('type', {}).get('name')
     target_types = [t['type'].get('name') for t in opponentPokemon['types']]
@@ -499,7 +511,7 @@ def handle_move(action):
     print(f"Move {move_name} PP remaining: {userPokemon['learned_moves'][move_index]['PP']}")
     opponentPokemon['current_HP'] -= damage
     if opponentPokemon['current_HP'] <= 0:
-        faint(opponentPokemon, user.user_id)
+        faint(opponentPokemon, find_opponent_in_room(user.user_id, user.room_id)[1])
 
     message = ""
     if type_multiplier > 1:
@@ -512,7 +524,7 @@ def handle_move(action):
     return message
 
     
-def faint(pokemon, user_id):
+def faint(pokemon, player):
     """Handle fainting a Pokemon"""
     if (pokemon['current_HP'] <= 0):
         pokemon['fainted'] = True
@@ -520,8 +532,16 @@ def faint(pokemon, user_id):
         emit('pokemon_fainted', {
             'message': f"{pokemon['name']} has fainted!",
             'pokemon_id': pokemon['id'],
-            'player_id': user_id,
-        }, to=pokemon.get('room_id'))
+            'player': player.username,
+        }, to=player.room_id)
+        player.select_pokemon(None)
+    if len(list(filter(lambda x: not x['fainted'], player.pokemon))) == 0:
+        emit('battle_end', {
+            'message': f"{player.username} has no more Pokemon left! {player.username} has lost the battle!",
+            'winner': find_opponent_in_room(player.user_id, player.room_id)[1].username
+        }, to=player.room_id)
+        active_players.pop(player.user_id, None)
+        active_players.pop(find_opponent_in_room(player.user_id, player.room_id)[0], None)
 
 def handle_item(action):
     pass
@@ -540,9 +560,6 @@ def handle_pokemon(action):
         raise InvalidAction('Invalid Pokemon selection')
     
     user.select_pokemon(next((p for p in user.pokemon if p.get('id') == action.get('pokemon_id') )))
-    if curr_id == None:
-        emit('pokemon_prepared', {
-        }, to=user.room_id)
     return f"{user.username} has selected {user.selected_pokemon.get('name')} as their active Pokemon!"
 
 def damage_by_type(move_type, target_types):
@@ -628,6 +645,21 @@ def damage_by_type(move_type, target_types):
     
     return total_multiplier
 
+def get_moves(moves):
+    """Extract moves from the Pokemon's moves list"""
+    learned_moves = []
+    for move in moves:
+        move_url = move['url']
+        response = requests.get(move_url)
+        move_arr = response.json()
+        move_arr['maxPP'] = move_arr['pp']
+        move_arr['PP'] = move_arr['pp']
+        learned_moves.append(move_arr)
+    # print(f"Learned moves: {learned_moves}")
+    return learned_moves
+
+def handleStatusMove(move, userPokemon, opponentPokemon):
+    return "status move"
 class InvalidAction(Exception):
     """Custom exception for invalid actions in the battle"""
     def __init__(self, message):

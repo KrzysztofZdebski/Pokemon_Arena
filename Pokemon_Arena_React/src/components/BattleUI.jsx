@@ -19,21 +19,23 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     const [playerPokemonCount, setPlayerPokemonCount] = useState({ total: 0, fainted: 0 });
 
     useEffect(() => {
-        if (!battleStarted) {
+        console.log("BattleUI mounted with battleId:", battleId);
+        console.log(playerPokemon);
+        if (!playerPokemon) {
             setCurrentMenu('pokemon');
             setShowBackButton(false);
         } else{
             setCurrentMenu('main');
             setShowBackButton(true);
         }
-    }, [battleStarted]);
+    }, [playerPokemon]);
 
     useEffect(() => {
         if(waitingForOpponent) {
             setCurrentMenu('waiting');
         } else if (currentMenu === 'waiting') {
             // When no longer waiting, return to appropriate menu
-            if (battleStarted) {
+            if (battleStarted && playerPokemon) {
                 setCurrentMenu('main');
             } else {
                 setCurrentMenu('pokemon');
@@ -185,15 +187,19 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             const opponentData = data.game_state.players.find(p => p.username !== username);
             const playerData = data.game_state.players.find(p => p.username === username);
             
-            setOpponentPokemon(opponentData.pokemon);
-            setPlayerPokemon(playerData.pokemon);
-            setMoves(playerData.pokemon.learned_moves);
-            
-            // Set opponent Pokemon count data
+            if(opponentData.pokemon){ {   
+                setOpponentPokemon(opponentData.pokemon);
+            }
+            if(playerData.pokemon){
+                setPlayerPokemon(playerData.pokemon);
+                setMoves(playerData.pokemon.learned_moves);
+                
+            }
+
             setOpponentPokemonCount({
                 total: opponentData.pokemon_nbr,
                 fainted: opponentData.fainted_nbr
-            });
+            });}
 
             setPlayerPokemonCount({
                 total: playerData.pokemon_nbr,
@@ -206,7 +212,26 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             console.error("Invalid action:", data.message);
             alert(data.message);
             setWaitingForOpponent(false);
-        }
+        },
+        onPokemonFainted: (data) => {
+            console.log("Pokemon fainted:", data);
+            if (data.player === username) {
+                if (data.pokemon_id === playerPokemon.id) {
+                    playerPokemons.forEach((pokemon, index) => {
+                        if (pokemon.id === data.pokemon_id) {
+                            const updatedPokemons = [...playerPokemons];
+                            updatedPokemons[index].fainted = true; // Mark as fainted
+                            setPlayerPokemons(updatedPokemons);
+                        }
+                    });
+                    setPlayerPokemon(null);
+                }
+            } else {
+                if (data.pokemon_id === opponentPokemon.id) {
+                    setOpponentPokemon(null);
+                }
+            }
+        },
     })
 
     // Show loading state while fetching Pokemon data
@@ -272,13 +297,13 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
 
             {/* Opponent Pokemon Sprite */}
             <div className="absolute top-10 right-10">
-            {battleStarted ?
+            {opponentPokemon ?
             <img src={opponentPokemon.sprites.front_default} className='w-60' />
             : <></>}
             </div>
 
             {/* Player Pokemon Area */}
-            <div className="absolute bottom-32 right-4">
+            <div className="absolute mb-10 bottom-32 right-4">
             {/* Player HP Bar */}
             <div className="h-20 p-2 mb-1 bg-gray-700 border-4 border-black rounded-lg w-60" style={{ fontFamily: 'monospace' }}>
                 {playerPokemon === null ? 
@@ -309,26 +334,30 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             </div>
             
             {/* Player Pokemon Status Icons */}
-            {Array.from({ length: playerPokemonCount.total }, (_, index) => (
-                <div
-                    key={index}
-                    className={`w-6 h-6 border-2 rounded-full ${
-                        index < (playerPokemonCount.total - playerPokemonCount.fainted)
-                            ? index === 0 ? 'bg-green-400 border-green-600' : 'bg-blue-400 border-blue-600'
-                            : 'bg-gray-400 border-gray-600'
-                    }`}
-                    title={`Pokemon ${index + 1} - ${
-                        index < (playerPokemonCount.total - playerPokemonCount.fainted) 
-                            ? index === 0 ? 'Active' : 'Healthy' 
-                            : 'Fainted'
-                    }`}
-                />
-            ))}
+            {playerPokemon && (
+                <div className="flex gap-1 ml-2">
+                    {Array.from({ length: playerPokemonCount.total }, (_, index) => (
+                        <div
+                            key={index}
+                            className={`w-6 h-6 border-2 rounded-full ${
+                                index < (playerPokemonCount.total - playerPokemonCount.fainted)
+                                    ? index === 0 ? 'bg-green-400 border-green-600' : 'bg-blue-400 border-blue-600'
+                                    : 'bg-gray-400 border-gray-600'
+                            }`}
+                            title={`Pokemon ${index + 1} - ${
+                                index < (playerPokemonCount.total - playerPokemonCount.fainted) 
+                                    ? index === 0 ? 'Active' : 'Healthy' 
+                                    : 'Fainted'
+                            }`}
+                        />
+                    ))}
+                </div>
+            )}
             </div>
 
             {/* Player Pokemon Sprite */}
             <div className="absolute bottom-32 left-16">
-            {battleStarted ?
+            {playerPokemon ?
             <img src={playerPokemon.sprites.back_default} className='w-60' />
             : <></>}
             </div>
@@ -346,7 +375,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                 )}
                 {currentMenu === 'main' && (
                     <div className="text-lg leading-tight whitespace-pre-line">
-                    What will {playerPokemon.name} do?
+                    What will {playerPokemon ? playerPokemon.name : "you"} do?
                     </div>
                 )}
                 {currentMenu === 'fight' && (
@@ -369,7 +398,8 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                         <button
                         key={index}
                         onClick={() => handleSwitchPokemon(pokemon)}
-                        className="p-2 text-sm text-left bg-blue-800 border-2 border-white hover:bg-blue-700"
+                        className={`p-2 text-sm text-left border-white border-2 ${pokemon.fainted ? "bg-gray-500" : "bg-blue-800 hover:bg-blue-700"}`}
+                        disabled={pokemon.fainted}
                         >
                         <div className="font-bold">{pokemon.name}</div>
                         </button>
