@@ -15,6 +15,8 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
     const [showBackButton, setShowBackButton] = useState(false);
     const [moves, setMoves] = useState([]);
+    const [opponentPokemonCount, setOpponentPokemonCount] = useState({ total: 0, fainted: 0 });
+    const [playerPokemonCount, setPlayerPokemonCount] = useState({ total: 0, fainted: 0 });
 
     useEffect(() => {
         if (!battleStarted) {
@@ -56,14 +58,6 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
         setCurrentMenu(action);
     };
 
-    // const handleMoveSelect = (move) => {
-    //     // Emit move selection to socket
-    //     if (socket) {
-    //     socket.emit('battle_move', { battleId, move: move.name });
-    //     }
-    //     setCurrentMenu('main');
-    // };
-
     const handleRun = () => {
         const confirmed = window.confirm("Are you sure you want to run?");
         if(confirmed){
@@ -73,24 +67,26 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
         }
     }
 
-    const handlePokemonSelect = (pokemon) => {
-        if (socket) {
-            setWaitingForOpponent(true);
-            setMoves(pokemon.learned_moves);
-            socket.emit('choose_pokemon', { battleId, pokemon_id: pokemon.id });
-        }
-        console.log("Selected Pokemon:", pokemon);
-    }
+    // const handlePokemonSelect = (pokemon) => {
+    //     if (socket) {
+    //         setWaitingForOpponent(true);
+    //         setMoves(pokemon.learned_moves);
+    //         socket.emit('choose_pokemon', { battleId, pokemon_id: pokemon.id });
+    //     }
+    //     console.log("Selected Pokemon:", pokemon);
+    // }
 
     const handleSwitchPokemon = (pokemon) => {
         if (socket) {
-            if (pokemon.id === playerPokemon.id) {
+            let curr_id = playerPokemon ? playerPokemon.id : null;
+            if (pokemon.id === curr_id) {
                 console.log("Already selected this Pokemon:", pokemon);
                 alert("You have already selected this Pokémon.");
                 return;
             }
             setWaitingForOpponent(true);
             setMoves(pokemon.learned_moves);
+            console.log({ action: {type: 'pokemon', pokemon_id: pokemon.id} })
             socket.emit('next_action', { action: {type: 'pokemon', pokemon_id: pokemon.id} });
         }
     }
@@ -155,19 +151,19 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
         // },
         onPokemonPrepared: (data) => {
             console.log("Battle started:", data);
-            if (!data || !data.pokemon) {
-                console.error("Invalid Pokemon data received");
-                return;
-            }
-            if (data.pokemon.player1.username === username){
-                setPlayerPokemon(data.pokemon.player1.pokemon);
-                setOpponentPokemon(data.pokemon.player2.pokemon);
-            } else{
-                setPlayerPokemon(data.pokemon.player2.pokemon);
-                setOpponentPokemon(data.pokemon.player1.pokemon);
-            }
-            setBattleStarted(true);
-            setWaitingForOpponent(false);
+            // if (!data || !data.pokemon) {
+            //     console.error("Invalid Pokemon data received");
+            //     return;
+            // }
+            // if (data.pokemon.player1.username === username){
+            //     setPlayerPokemon(data.pokemon.player1.pokemon);
+            //     setOpponentPokemon(data.pokemon.player2.pokemon);
+            // } else{
+            //     setPlayerPokemon(data.pokemon.player2.pokemon);
+            //     setOpponentPokemon(data.pokemon.player1.pokemon);
+            // }
+            // setBattleStarted(true);
+            // setWaitingForOpponent(false);
         },
         onBattleEnd: (data) => {
             console.log("Battle ended:", data);
@@ -180,14 +176,30 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             navigate('/battle');
         },
         onNextRound: (data) => {
+            setBattleStarted(true);
             console.log("Next round started:", data);
             if (!data || !data.game_state) {
                 console.error("Invalid game state data received");
                 return;
             }
-            setOpponentPokemon(data.game_state.players.find(p => p.username !== username).pokemon);
-            setPlayerPokemon(data.game_state.players.find(p => p.username === username).pokemon);
-            setMoves(data.game_state.players.find(p => p.username === username).pokemon.learned_moves);
+            const opponentData = data.game_state.players.find(p => p.username !== username);
+            const playerData = data.game_state.players.find(p => p.username === username);
+            
+            setOpponentPokemon(opponentData.pokemon);
+            setPlayerPokemon(playerData.pokemon);
+            setMoves(playerData.pokemon.learned_moves);
+            
+            // Set opponent Pokemon count data
+            setOpponentPokemonCount({
+                total: opponentData.pokemon_nbr,
+                fainted: opponentData.fainted_nbr
+            });
+
+            setPlayerPokemonCount({
+                total: playerData.pokemon_nbr,
+                fainted: playerData.fainted_nbr
+            });
+            
             setWaitingForOpponent(false);
         },
         onInvalidAction: (data) => {
@@ -237,19 +249,25 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             </div>
             
             {/* Opponent Pokemon Status Icons */}
-            {/* {opponentPokemon && (
+            {opponentPokemon && (
                 <div className="flex gap-1 ml-2">
-                    {Array.from({ length: playerPokemons.length }, (_, index) => (
+                    {Array.from({ length: opponentPokemonCount.total }, (_, index) => (
                         <div
                             key={index}
                             className={`w-6 h-6 border-2 rounded-full ${
-                                index === 0 ? 'bg-green-400 border-green-600' : 'bg-gray-400 border-gray-600'
+                                index < (opponentPokemonCount.total - opponentPokemonCount.fainted)
+                                    ? index === 0 ? 'bg-green-400 border-green-600' : 'bg-blue-400 border-blue-600'
+                                    : 'bg-gray-400 border-gray-600'
                             }`}
-                            title={`Pokemon ${index + 1}`}
+                            title={`Pokemon ${index + 1} - ${
+                                index < (opponentPokemonCount.total - opponentPokemonCount.fainted) 
+                                    ? index === 0 ? 'Active' : 'Healthy' 
+                                    : 'Fainted'
+                            }`}
                         />
                     ))}
                 </div>
-            )} */}
+            )}
             </div>
 
             {/* Opponent Pokemon Sprite */}
@@ -291,23 +309,21 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
             </div>
             
             {/* Player Pokemon Status Icons */}
-            {playerPokemon && (
-                <div className="flex justify-end gap-1 mb-10 mr-2">
-                    {playerPokemons.map((pokemon, index) => (
-                        <div
-                            key={index}
-                            className={`w-6 h-6 border-2 rounded-full ${
-                                pokemon.current_HP > 0 
-                                    ? pokemon.id === playerPokemon.id 
-                                        ? 'bg-green-400 border-green-600' 
-                                        : 'bg-blue-400 border-blue-600'
-                                    : 'bg-red-400 border-red-600'
-                            }`}
-                            title={`${pokemon.name} - ${pokemon.current_HP > 0 ? 'Healthy' : 'Fainted'}`}
-                        />
-                    ))}
-                </div>
-            )}
+            {Array.from({ length: playerPokemonCount.total }, (_, index) => (
+                <div
+                    key={index}
+                    className={`w-6 h-6 border-2 rounded-full ${
+                        index < (playerPokemonCount.total - playerPokemonCount.fainted)
+                            ? index === 0 ? 'bg-green-400 border-green-600' : 'bg-blue-400 border-blue-600'
+                            : 'bg-gray-400 border-gray-600'
+                    }`}
+                    title={`Pokemon ${index + 1} - ${
+                        index < (playerPokemonCount.total - playerPokemonCount.fainted) 
+                            ? index === 0 ? 'Active' : 'Healthy' 
+                            : 'Fainted'
+                    }`}
+                />
+            ))}
             </div>
 
             {/* Player Pokemon Sprite */}
@@ -352,7 +368,7 @@ export default function BattleUI({ battleId, className = "", socket, pokemons, o
                     {playerPokemons.map((pokemon, index) => (
                         <button
                         key={index}
-                        onClick={playerPokemon ? () => handleSwitchPokemon(pokemon) : () => handlePokemonSelect(pokemon)}
+                        onClick={() => handleSwitchPokemon(pokemon)}
                         className="p-2 text-sm text-left bg-blue-800 border-2 border-white hover:bg-blue-700"
                         >
                         <div className="font-bold">{pokemon.name}</div>
