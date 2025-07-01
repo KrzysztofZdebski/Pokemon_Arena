@@ -277,22 +277,23 @@ def choose_pokemon(data):
     
     # Fetch Pokemon data from the database
     pokemon = next((p for p in player.pokemon if p.get('id') == pokemon_id))
+    pokemon_obj = Pokemon.get_by_id(pokemon_id)
     # print(f'Pokemon chosen: {pokemon}')
     if not pokemon:
         emit('error', {'message': 'Pokemon not found'})
         return
 
-    available_moves = pokemon.available_moves()
+    available_moves = pokemon_obj.available_moves()
     available_move_names = {m['name'] for m in available_moves}
 
     # --- PRZYPADKI: ---
     if not chosen_moves:
         # Zwróć ruchy do wyboru dla frontendu
         emit('choose_moves', {
-            'pokemon_id': pokemon.id,
-            'pokemon_name': pokemon.name,
+            'pokemon_id': pokemon_obj.id,
+            'pokemon_name': pokemon_obj.name,
             'available_moves': available_moves,
-            'message': f"Choose 4 moves for {pokemon.name}"
+            'message': f"Choose 4 moves for {pokemon_obj.name}"
         })
         return
 
@@ -305,11 +306,10 @@ def choose_pokemon(data):
         return
 
     chosen_move_dicts = [m for m in available_moves if m['name'] in chosen_moves]
-    p_dict = pokemon.to_dict()
-    p_dict['available_moves'] = chosen_move_dicts
-    player.select_pokemon(p_dict)
+    pokemon['available_moves'] = chosen_move_dicts
+    player.select_pokemon(pokemon)
 
-    print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.name} with moves: {chosen_moves}')
+    print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon_obj.name} with moves: {chosen_moves}')
 
     opponent_id, opponent = find_opponent_in_room(userID, player.room_id)
     if not opponent:
@@ -317,12 +317,12 @@ def choose_pokemon(data):
         return
 
     if opponent.selected_pokemon:
-        opp_pokemon = Pokemon.get_by_id(opponent.selected_pokemon['id'])
-        opp_moves = opp_pokemon.available_moves()
-        opp_chosen_moves = random.sample(opp_moves, min(4, len(opp_moves)))  
-        opp_poke_dict = opp_pokemon.to_dict()
-        opp_poke_dict['available_moves'] = opp_chosen_moves
-        opponent.select_pokemon(opp_poke_dict)
+        # opp_pokemon = Pokemon.get_by_id(opponent.selected_pokemon['id'])
+        # opp_moves = opp_pokemon.available_moves()
+        # opp_chosen_moves = random.sample(opp_moves, min(4, len(opp_moves)))  
+        # opp_poke_dict = opp_pokemon.to_dict()
+        # opp_poke_dict['available_moves'] = opp_chosen_moves
+        # opponent.select_pokemon(opp_poke_dict)
 
         emit('pokemon_prepared', {
             'message': f'{player.username} and {opponent.username} have chosen their Pokemon!',
