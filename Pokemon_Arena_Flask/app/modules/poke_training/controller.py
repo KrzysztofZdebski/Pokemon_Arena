@@ -83,6 +83,15 @@ class PokemonController:
             # Wyciąganie statystyk z JSON-a
         stat_map = {s["stat"]["name"]: s["base_stat"] for s in pokemon.stats}
 
+        available_moves = PokemonController.get_learnable_moves(pokemon.name, pokemon.level)
+
+        current_moves = []
+        for m in (pokemon.moves or []):
+            if isinstance(m, str):
+                current_moves.append(m)
+            elif isinstance(m, dict) and "move" in m and "name" in m["move"]:
+                current_moves.append(m["move"]["name"])
+
         return jsonify({
             "id": pokemon.id,
             "name": pokemon.name,
@@ -92,6 +101,8 @@ class PokemonController:
             "hp": stat_map.get("hp"),
             "attack": stat_map.get("attack"),
             "defense": stat_map.get("defense"),
+            "available_moves": available_moves,        
+            "current_moves": current_moves 
         }), 200
 
     @staticmethod
