@@ -38,7 +38,8 @@ function Pokeballs() {
     
 
   return (
-        <div className="sm:w-[100vw] md:w-[99vw] lg:w-[99wv]" style={{ padding: 25 }}>
+        <div className="sm:w-[100vw] md:w-[99vw] lg:w-[99wv] mt-26" style={{ padding: 25 }}>
+        <div className="mx-auto max-w-7xl">
             {loading && (
                 <div className="flex items-center justify-center">
                     <div className="w-8 h-8 border-b-2 border-gray-900 rounded-full animate-spin"></div>
@@ -147,6 +148,7 @@ function Pokeballs() {
                     </div>
                 </div>
             )}
+        </div>
         </div>
     );
 
