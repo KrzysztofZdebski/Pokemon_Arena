@@ -14,7 +14,7 @@ class User(db.Model):
     username = mapped_column(sa.String(255), unique=True, nullable=True)
     password = mapped_column(sa.String(255), nullable=False) 
     points = mapped_column(sa.Integer, default=0)  
-    coins=db.Column(db.Integer, default=150)  
+    coins=db.Column(db.Integer, default=0)  
 
     pokemons = db.relationship('Pokemon', back_populates='owner', cascade="all, delete-orphan")
 
@@ -81,6 +81,7 @@ class Pokemon(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)  # PokeAPI ID
     name = db.Column(db.String(100), nullable=False)
+    level=db.Column(db.Integer, default=1)  # Default level for new Pokémon
 
     base_experience = db.Column(db.Integer)
     height = db.Column(db.Integer)
@@ -109,11 +110,12 @@ class Pokemon(db.Model):
     is_training = db.Column(db.Boolean, default=False)
     training_end_time = db.Column(db.DateTime, nullable=True)
     training_levels = db.Column(db.Integer, default=1)   
-
+    
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
+            "level": self.level,  # ← poprawione!
             "base_experience": self.base_experience,
             "height": self.height,
             "weight": self.weight,
@@ -134,8 +136,9 @@ class Pokemon(db.Model):
             "is_training": self.is_training,
             "training_end_time": self.training_end_time.isoformat() if self.training_end_time else None,
             "owner_id": self.owner_id,
-            "level": self.training_levels,
+            "training_levels": self.training_levels,  # jeśli chcesz to też osobno
         }
+
     @classmethod
     def get_by_id(cls, pokemon_id):
         return cls.query.filter_by(id=pokemon_id).first()

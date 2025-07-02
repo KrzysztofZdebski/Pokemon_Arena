@@ -65,19 +65,32 @@ class PokemonController:
 
         now = datetime.utcnow()
         if pokemon.is_training and pokemon.training_end_time and now >= pokemon.training_end_time:
-            stat_map = {s["stat"]["name"]: s["base_stat"] for s in pokemon.stats}
-            base_hp = stat_map.get("hp", 0)
-            base_attack = stat_map.get("attack", 0)
-            base_defense = stat_map.get("defense", 0)
-            levels_up = getattr(pokemon, "training_levels", 1)  # <------ NOWE!
+            levels_up = getattr(pokemon, "training_levels", 1)
             pokemon.level += levels_up
-            pokemon.hp += round(base_hp / 50) * levels_up
-            pokemon.attack += round(base_attack / 50) * levels_up
-            pokemon.defense += round(base_defense / 50) * levels_up
+
+            # Zaktualizuj wartości w pokemon.stats
+            for stat in pokemon.stats:
+                name = stat["stat"]["name"]
+                if name in ["hp", "attack", "defense"]:
+                    increase = round(stat["base_stat"] / 50) * levels_up
+                    stat["base_stat"] += increase
+
             pokemon.is_training = False
             pokemon.training_end_time = None
             pokemon.training_levels = 1  # resetuj po zakończonym treningu
             db.session.commit()
+
+            # Wyciąganie statystyk z JSON-a
+        stat_map = {s["stat"]["name"]: s["base_stat"] for s in pokemon.stats}
+
+        available_moves = PokemonController.get_learnable_moves(pokemon.name, pokemon.level)
+
+        current_moves = []
+        for m in (pokemon.moves or []):
+            if isinstance(m, str):
+                current_moves.append(m)
+            elif isinstance(m, dict) and "move" in m and "name" in m["move"]:
+                current_moves.append(m["move"]["name"])
 
         return jsonify({
             "id": pokemon.id,
@@ -85,8 +98,35 @@ class PokemonController:
             "level": pokemon.level,
             "is_training": pokemon.is_training,
             "training_end_time": pokemon.training_end_time.isoformat() if pokemon.training_end_time else None,
-            "hp": pokemon.hp,
-            "attack": pokemon.attack,
-            "defense": pokemon.defense,
+            "hp": stat_map.get("hp"),
+            "attack": stat_map.get("attack"),
+            "defense": stat_map.get("defense"),
+            "available_moves": available_moves,        
+            "current_moves": current_moves 
         }), 200
+
+    @staticmethod
+    def get_learnable_moves(pokemon_name, current_level):
+        EXCLUDED_MOVES = {}  # wykluczone ruchy
+
+        response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}")
+        if response.status_code != 200:
+            return []
+
+        data = response.json()
+        learnable_moves = []
+
+        for move in data["moves"]:
+            move_name = move["move"]["name"]
+            if move_name in EXCLUDED_MOVES:
+                continue  
+
+            for version_detail in move["version_group_details"]:
+                if version_detail["level_learned_at"] <= current_level:
+                    learnable_moves.append(move_name)
+                    break
+
+        return learnable_moves
+
+
 

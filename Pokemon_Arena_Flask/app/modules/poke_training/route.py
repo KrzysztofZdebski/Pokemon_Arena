@@ -291,3 +291,89 @@ def get_pokemon(pokemon_id):
         return jsonify({"error": "You do not have permission to view this Pokemon"}), 403
 
     return jsonify(pokemon.to_dict()), 200
+
+
+@pokemon_bp.route('/change_move', methods=['POST'])
+@jwt_required()
+def change_pokemon_move():
+    """
+    Pozwala wymienić ruch Pokémona na inny, jeśli jest dostępny na jego poziomie.
+    ---
+    tags:
+      - Pokémon
+    security:
+      - Bearer: []
+    consumes:
+      - application/json
+    parameters:
+      - in: header
+        name: Authorization
+        required: true
+        type: string
+        description: Token JWT (w formacie Bearer <twój_token>)
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            pokemon_id:
+              type: integer
+              example: 12
+            move_to_replace:
+              type: string
+              example: "tackle"
+            new_move:
+              type: string
+              example: "thunderbolt"
+    responses:
+      200:
+        description: Ruch został pomyślnie zmieniony
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Move tackle replaced with thunderbolt!"
+            moves:
+              type: array
+              items:
+                type: string
+      400:
+        description: Błąd danych wejściowych
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      404:
+        description: Pokémon nie znaleziony
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
+    data = request.get_json()
+    pokemon_id = data.get("pokemon_id")
+    move_to_replace = data.get("move_to_replace")
+    new_move = data.get("new_move")
+
+    user_id = current_user.id
+    pokemon = Pokemon.query.filter_by(id=pokemon_id, owner_id=user_id).first()
+    if not pokemon:
+        return jsonify({"error": "Pokemon not found"}), 404
+
+    learnable_moves = PokemonController.get_learnable_moves(pokemon.name, pokemon.level)
+    if new_move not in learnable_moves:
+        return jsonify({"error": f"{new_move} is not available for {pokemon.name} at level {pokemon.level}"}), 400
+
+    current_moves = [m["name"] if isinstance(m, dict) and "name" in m else m for m in pokemon.moves or []]
+    if move_to_replace not in current_moves:
+        return jsonify({"error": f"{move_to_replace} not in current moveset"}), 400
+
+    updated_moves = [new_move if m == move_to_replace else m for m in current_moves]
+    pokemon.moves = updated_moves
+    db.session.commit()
+
+    return jsonify({"message": f"Move {move_to_replace} replaced with {new_move}!", "moves": updated_moves}), 200
