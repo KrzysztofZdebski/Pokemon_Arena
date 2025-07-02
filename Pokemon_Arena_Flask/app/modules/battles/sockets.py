@@ -114,7 +114,7 @@ def join_queue(data):
         emit('queue_status', {'message': f'{username} with ID {userID} joined the queue', 'room_id': room_id})
     else:
         # Second player joins - match found!
-        opponent_session_id, opponent_player = find_opponent()
+        opponent_session_id, opponent_player = find_opponent(userID)
         room_id = opponent_player.room_id
         
         # Create player object for the second player
@@ -281,10 +281,30 @@ def generate_room_id():
     import uuid
     return str(uuid.uuid4())
 
-def find_opponent():
-    """Find and return an opponent from waiting players"""
-    if waiting_players:
-        return waiting_players.popitem()
+def find_opponent(userID):
+    if userID not in waiting_players or len(waiting_players) <= 1:
+        # Brak przeciwnika
+        return None, None
+
+    my_player = waiting_players[userID]
+    min_diff = float('inf')
+    best_opponent_id = None
+    best_opponent = None
+
+    for session_id, player in waiting_players.items():
+        if session_id == userID:
+            continue
+        diff = abs(my_player.points - player.points)
+        if diff < min_diff:
+            min_diff = diff
+            best_opponent_id = session_id
+            best_opponent = player
+
+    if best_opponent_id:
+        # Usuwamy przeciwnika z kolejki
+        waiting_players.pop(best_opponent_id)
+        return best_opponent_id, best_opponent
+
     return None, None
 
 def match_setup(room_id, player1_session_id, player2_session_id):
