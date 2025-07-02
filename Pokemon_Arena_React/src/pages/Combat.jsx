@@ -81,6 +81,10 @@ export default function Combat() {
     }
 
     const ready = () => {
+        let confirmed = confirm("Are you sure you want to start the battle?");
+        if (!confirmed) {
+            return;
+        }
         if (isReady) {
             socketService.emit("not_ready", { battleId: id });
             setIsReady(false);
@@ -99,38 +103,75 @@ export default function Combat() {
 
 
     return (
-        <div className="w-screen min-h-screen mt-20 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
+        <div className="min-h-screen mt-16 bg-gradient-to-br from-pokemon-red to-pokemon-yellow w-[99vw]">
         { InBattle ?
-            <div className="flex flex-row items-center justify-center h-full p-4 mx-auto w-7/10">
-                <BattleUI battleId={id} socket={socketService} className="w-3/5" pokemons={selectedPokemons} opponent_username={opponentUsername}/>
-                <Chat messages={messages} className="w-2/5 h-150" socket={socketService} />
+            <div className="flex flex-col lg:flex-row items-center justify-center w-full p-4 pt-20 mx-auto max-w-7xl min-h-[calc(100vh-4rem)]">
+                <div className="w-full lg:w-3/5 h-[50vh] lg:h-[80vh]">
+                    <BattleUI battleId={id} socket={socketService} className="w-full h-full" pokemons={selectedPokemons} opponent_username={opponentUsername}/>
+                </div>
+                <div className="w-full lg:w-2/5 h-[40vh] lg:h-[80vh] mt-4 lg:mt-0 lg:ml-4">
+                    <Chat messages={messages} className="w-full h-full" socket={socketService} />
+                </div>
             </div> :
             <>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {pokemons.map((pokemon) => (
-                <PokemonCard
-                    key={pokemon.id}
-                    pokemon={pokemon}
-                    isTraining={pokemon.is_training}
-                    disabled={pokemon.is_training}
-                    buttonType="battle"
-                    onChoose={choosePokemon}
-                />
-                ))}
-            </div>
-            <div className="flex flex-col items-center mt-4">
-                <button
-                    className={`px-4 py-2 text-lg font-semibold text-white rounded-lg ${isReady ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
-                    onClick={ready}>
-                    {isReady ? "Ready ✔" : "Not Ready ✕"}
-                </button>
+            <div className="min-h-screen pt-10 bg-gradient-to-br from-pokemon-yellow to-pokemon-blue">
+            <div className="container px-6 py-12 mx-auto max-w-7xl">
+                <header className="mb-2 text-center">
+                <h1 className="mb-4 text-5xl font-bold text-white">
+                    Choose Six Pokemon
+                </h1>
+                </header>
+                <main>
+                <div className="flex justify-center mb-6">
+                    <button
+                    className="px-4 py-2 font-semibold text-white bg-blue-900 rounded-lg hover:bg-blue-800"
+                    onClick={fetchPokemons}
+                    >
+                    Refresh pokemon
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {pokemons.map((pokemon) => {
+                    const now = Date.now();
+                    const endTime = pokemon.training_end_time
+                        ? Date.parse(pokemon.training_end_time.split(".")[0] + "Z")
+                        : 0;
+                    const isTraining = pokemon.is_training && endTime > now;
+                    const secondsLeft = isTraining ? Math.floor((endTime - now) / 1000) : 0;
 
-                {isWaitingForOpponent && (
-                    <div className="flex flex-col items-center mt-4">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-white"></div>
-                        <p className="mt-2 text-white font-semibold">Looking for an opponent...</p>
-                    </div>
-                )}
+                    return (
+                        <div className="w-full max-w-sm mx-auto">
+                        <PokemonCard
+                            key={pokemon.id}
+                            pokemon={pokemon}
+                            isTraining={isTraining}
+                            secondsLeft={secondsLeft}
+                            onChoose={choosePokemon}
+                            disabled={false}
+                            buttonType="battle"
+                        />
+                        </div>
+                    );
+                    })}
+                </div>
+                <div className="flex flex-col items-center mt-4">
+                    {!isWaitingForOpponent &&
+                        <button
+                            className={`px-4 py-2 text-lg font-semibold text-white rounded-lg ${isReady ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}`}
+                            onClick={ready}>
+                            {isReady ? "Ready ✔" : "Not Ready ✕"}
+                        </button>
+                    }
+
+                    {isWaitingForOpponent && (
+                        <div className="flex flex-col items-center mt-4">
+                            <div className="w-12 h-12 border-t-4 border-b-4 border-white rounded-full animate-spin"></div>
+                            <p className="mt-2 font-semibold text-white">Looking for an opponent...</p>
+                        </div>
+                    )}
+                </div>
+                </main>
+            </div>
             </div>
             </>
         }

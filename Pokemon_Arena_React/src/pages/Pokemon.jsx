@@ -86,7 +86,7 @@ function Pokemon() {
 
   return (
       <div className="w-screen min-h-screen pt-28 bg-gradient-to-br from-pokemon-yellow to-pokemon-blue">
-      <div className="container px-6 py-12 mx-auto">
+      <div className="container px-6 py-12 mx-auto max-w-7xl">
         <header className="mb-16 text-center">
           <h1 className="mb-6 text-5xl font-bold text-white">
             Pokemon Collection
@@ -96,13 +96,13 @@ function Pokemon() {
         <main>
           <div className="flex justify-center mb-6">
             <button
-              className="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold"
+              className="px-4 py-2 font-semibold text-white bg-blue-900 rounded-lg hover:bg-blue-800"
               onClick={fetchPokemons}
             >
               Załaduj  pokemony
             </button>
           </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {pokemons.map((pokemon) => {
               const now = Date.now();
               const endTime = pokemon.training_end_time
@@ -112,15 +112,16 @@ function Pokemon() {
               const secondsLeft = isTraining ? Math.floor((endTime - now) / 1000) : 0;
 
               return (
-                <PokemonCard
-                  key={pokemon.id}
-                  pokemon={pokemon}
-                  isTraining={isTraining}
-                  secondsLeft={secondsLeft}
-                  onTrain={handleTrain}
-                  disabled={false}
-                  buttonType="train"
-                />
+                <div key={pokemon.id} className="w-full max-w-sm mx-auto">
+                  <PokemonCard
+                    pokemon={pokemon}
+                    isTraining={isTraining}
+                    secondsLeft={secondsLeft}
+                    onTrain={handleTrain}
+                    disabled={false}
+                    buttonType="train"
+                  />
+                </div>
               );
             })}
           </div>

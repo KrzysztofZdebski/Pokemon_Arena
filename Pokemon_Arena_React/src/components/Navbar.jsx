@@ -20,16 +20,16 @@ function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50">
+    <nav className="fixed top-0 left-0 w-[99vw] z-50">
       {/* Żółte tło za granatowym paskiem */}
-      <div className="bg-menu-yellow px-4 py-3">
+      <div className="px-4 py-3 bg-menu-yellow">
         {/* Granatowy pasek */}
-        <div className="bg-menu-blue border-3 border-menu-white rounded-lg max-w-7xl mx-auto px-4 py-3 font-pokemon">
+        <div className="px-4 py-3 mx-auto rounded-lg bg-menu-blue border-3 border-menu-white max-w-7xl font-pokemon">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-y-2">
             {/* Logo */}
             <Link
               to="/"
-              className="text-2xl sm:text-4xl font-bold text-white whitespace-nowrap text-center sm:text-left"
+              className="text-2xl font-bold text-center text-white sm:text-4xl whitespace-nowrap sm:text-left"
             >
               Pokemon Arena
             </Link>
