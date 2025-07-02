@@ -1,8 +1,8 @@
 function About() {
   return (
     <>
-    <div className="w-screen min-h-screen max-w-screen bg-gradient-to-br from-purple-600 to-pokemon-blue">
-      <div className="container px-6 py-12 mx-auto">
+    <div className="lg:w-[99vw] md:w-[99vw] sm:w-[100vw] min-h-screen max-w-screen mt-26">
+      <div className="container px-6 py-12 mx-auto pt-28">
         <header className="mb-16 text-center">
           <h1 className="mb-6 text-5xl font-bold text-white">
             About Pokemon Arena
@@ -46,7 +46,7 @@ function About() {
             </ul>
           </div>
 
-          <div className="pokemon-card">
+          <div className="mb-8 pokemon-card">
             <h3 className="mb-4 text-2xl font-semibold">How to Play</h3>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
@@ -70,8 +70,64 @@ function About() {
               <div>
                 <h4 className="mb-2 text-lg font-medium">4. Grow Stronger</h4>
                 <p className="text-gray-600 dark:text-gray-300">
-                  Win battles to gain experience, level up your Pokemon, and unlock new abilities.
+                  Win battles to gain pokeDollars and spend them on making your Pokemon stronger.
                 </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pokemon-card">
+            <h3 className="mb-6 text-2xl font-semibold">Meet the Developers</h3>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="text-center">
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 text-2xl font-bold text-white rounded-full bg-pokemon-red">
+                  BT
+                </div>
+                <h4 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">
+                  Bartosz Tochowicz
+                </h4>
+                <a 
+                  href="https://github.com/BartoszTochowicz" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-medium transition-colors text-pokemon-blue hover:text-pokemon-blue/80"
+                >
+                  @BartoszTochowicz
+                </a>
+              </div>
+              
+              <div className="text-center">
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 text-2xl font-bold text-white rounded-full bg-pokemon-blue">
+                  KZ
+                </div>
+                <h4 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">
+                  Krzysztof Zdebski
+                </h4>
+                <a 
+                  href="https://github.com/KrzysztofZdebski" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-medium transition-colors text-pokemon-blue hover:text-pokemon-blue/80"
+                >
+                  @KrzysztofZdebski
+                </a>
+              </div>
+              
+              <div className="text-center">
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 text-2xl font-bold text-white rounded-full bg-pokemon-yellow">
+                  MS
+                </div>
+                <h4 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">
+                  Mateusz Sondej
+                </h4>
+                <a 
+                  href="https://github.com/MateuszS04" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-medium transition-colors text-pokemon-blue hover:text-pokemon-blue/80"
+                >
+                  @MateuszS04
+                </a>
               </div>
             </div>
           </div>

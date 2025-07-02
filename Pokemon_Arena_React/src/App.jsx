@@ -21,13 +21,13 @@ function App() {
       <Navbar />
       <Routes>
         <Route index element={<Home />} />
-        <Route path="/battle" element={<Battle />} />
-        <Route path="/battle/:id" element={<Combat />} />
-        <Route path="/pokemon" element={<Pokemon />} />
+        <Route path="/battle" element={<ProtectedRoute> <Battle /> </ProtectedRoute>} />
+        <Route path="/battle/:id" element={<ProtectedRoute> <Combat /> </ProtectedRoute>} />
+        <Route path="/pokemon" element={<ProtectedRoute> <Pokemon /> </ProtectedRoute>} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/account" element={<ProtectedRoute> <Account /> </ProtectedRoute>} />
-        <Route path="/pokeballs" element={<Pokeballs />} />
+        <Route path="/pokeballs" element={<ProtectedRoute> <Pokeballs /> </ProtectedRoute>} />
       </Routes>
     </Router>
   )

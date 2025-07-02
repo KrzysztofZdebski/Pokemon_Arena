@@ -56,13 +56,14 @@ function PokemonCard({
             📊
           </button>
         </div>
-        {isTraining && secondsLeft > 0 && (
-          <div className="mb-4 text-center">
+        {/* Fixed height container for training status */}
+        <div className="flex items-center justify-center h-8 mb-4">
+          {isTraining && secondsLeft > 0 && (
             <span className="font-bold text-gray-500">
               Trenuje... {secondsLeft}s
             </span>
-          </div>
-        )}
+          )}
+        </div>
         <div className="flex space-x-2">
           {buttonType === "train" ?
           <button

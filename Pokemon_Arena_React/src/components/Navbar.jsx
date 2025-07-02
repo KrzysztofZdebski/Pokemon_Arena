@@ -20,7 +20,7 @@ function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 w-[99vw] z-50">
+    <nav className="fixed top-0 left-0 z-50 lg:w-[99vw] md:w-[99vw] sm:w-[100vw]">
       {/* Żółte tło za granatowym paskiem */}
       <div className="px-4 py-3 bg-menu-yellow">
         {/* Granatowy pasek */}
@@ -40,10 +40,14 @@ function Navbar() {
                 <Link
                   key={i}
                   to={link.to}
-                  className={`text-sm sm:text-base md:text-xl text-white hover:text-pokemon-yellow transition ${
+                  className={`group text-sm sm:text-base md:text-xl text-white hover:text-pokemon-yellow transition ${
                     isActive(link.to) ? "text-pokemon-yellow" : ""
                   }`}
                 >
+                  <span className="pr-1 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+                    {" "}
+                    ▶
+                  </span>
                   {link.label}
                 </Link>
               ))}

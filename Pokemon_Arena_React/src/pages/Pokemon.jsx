@@ -85,7 +85,7 @@ function Pokemon() {
   }
 
   return (
-      <div className="w-screen min-h-screen pt-28 bg-gradient-to-br from-pokemon-yellow to-pokemon-blue">
+      <div className="lg:w-[99vw] md:w-[99vw] sm:w-[100vw] min-h-screen pt-28 bg-gradient-to-br from-pokemon-yellow to-pokemon-blue">
       <div className="container px-6 py-12 mx-auto max-w-7xl">
         <header className="mb-16 text-center">
           <h1 className="mb-6 text-5xl font-bold text-white">

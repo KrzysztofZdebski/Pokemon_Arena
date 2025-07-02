@@ -7,7 +7,7 @@ function Account() {
     const {username, email} = useContext(AuthContext);
 
     return (
-        <div className="flex items-center justify-center w-screen min-h-screen p-4 bg-striped-yellow">
+        <div className="flex items-center justify-center lg:w-[99vw] md:w-[99vw] sm:w-[100vw] min-h-screen p-4 bg-striped-yellow">
             <div className="flex flex-col items-center justify-center w-full max-w-2xl px-8 py-12 border-4 border-white shadow-2xl bg-menu-blue bg-opacity-90 rounded-2xl">
                 <h1 className="mb-2 text-2xl md:text-3xl lg:text-4xl font-bold text-pokemon-yellow tracking-wider text-center drop-shadow-[0_0_5px_rgba(255,255,255,0.75)] break-words">
                     Witaj, {username}!

@@ -80,7 +80,7 @@ function Battle() {
 
   return (
     <>
-      <div className="w-screen min-h-screen mt-26 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
+      <div className="lg:w-[99vw] md:w-[99vw] sm:w-[100vw] min-h-screen mt-26 bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
         <div className="container px-6 py-12 mx-auto">
           <header className="mb-16 text-center">
             <h1 className="mb-6 text-5xl font-bold text-white">
