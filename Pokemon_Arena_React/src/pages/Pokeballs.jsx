@@ -6,9 +6,6 @@ const POKEAPI_BASE = "https://pokeapi.co/api/v2";
 function Pokeballs() {
     const [pokemon, setPokemon] = useState(null);
     const [loading, setLoading] = useState(false);
-    function loadingSpinner() {
-    }
-   
     const buyPokeBall = async () =>{
         try{
             const res = await authApi.get('api/v1/pokeballs/');
@@ -48,7 +45,7 @@ function Pokeballs() {
             )}
             {!loading && pokemon && (
             <div className="flex items-center justify-center w-full min-h-screen bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
-                <div className="relative flex flex-col items-center w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+                <div className="relative flex flex-col items-center w-full bg-white max-w-md p-8 rounded-lg shadow-lg">
                     <button
                         onClick={() => setPokemon(null)}
                         style={{
@@ -74,15 +71,33 @@ function Pokeballs() {
                         alt={pokemon.name}
                         style={{ width: 140, height: 140, marginTop: 16 }}
                     />
-                    <h2 className="mt-4 text-2xl font-bold text-gray-900 capitalize">{pokemon.name}</h2>
+                    <h2 className="mt-4 text-2xl font-bold text-black capitalize">{pokemon.name}</h2>
                     <div className="w-full px-2 mt-6">
-                        <h3 className="mb-2 font-semibold text-gray-800">Base Stats:</h3>
-                        <ul className="text-left text-gray-700">
-                            {pokemon.stats.map((stat) => (
+                        <ul className="text-left text-black">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th className="px-4 py-2">Stat</th>
+                                        <th className="px-4 py-2">Value</th>
+                                        <th className="px-4 py-2">🔥</th>
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pokemon.stats.map((stat) => (
+                                        <tr key={stat.stat.name}>
+                                            <td className="px-4 py-2 capitalize">{stat.stat.name}</td>
+                                            <td className="px-4 py-2">{stat.base_stat}</td>
+                                        </tr>
+                                    ))}
+                                  
+                                </tbody>
+                            </table>
+                            {/* {pokemon.stats.map((stat) => (
                                 <li key={stat.stat.name}>
                                     <span className="capitalize">{stat.stat.name}:</span> {stat.base_stat}
                                 </li>
-                            ))}
+                            ))} */}
                         </ul>
                     </div>
                     <button
