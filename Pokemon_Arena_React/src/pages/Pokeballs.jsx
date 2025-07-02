@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState } from "react";
 import Button from "../components/Button";
 import authApi from "../utils/authApi";
 const POKEAPI_BASE = "https://pokeapi.co/api/v2";
@@ -15,6 +15,7 @@ function Pokeballs() {
         }catch(err){
             setPokemon(null);
             alert("Error fetching Pokémon data. Please try again later.");
+            console.error("Error fetching Pokémon data:", err);
         }
         setLoading(false);
     }
@@ -31,6 +32,7 @@ function Pokeballs() {
             setPokemon(null);
             alert("Error fetching Pokémon data. Please try again later.");
             setLoading(false);
+            console.error("Error fetching Pokémon data:", err);
         }
     }
     
@@ -45,7 +47,7 @@ function Pokeballs() {
             )}
             {!loading && pokemon && (
             <div className="flex items-center justify-center w-full min-h-screen bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
-                <div className="relative flex flex-col items-center w-full bg-white max-w-md p-8 rounded-lg shadow-lg">
+                <div className="relative flex flex-col items-center w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
                     <button
                         onClick={() => setPokemon(null)}
                         style={{
