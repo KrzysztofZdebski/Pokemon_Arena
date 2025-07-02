@@ -39,16 +39,16 @@ function Pokeballs() {
     
 
   return (
-        <div style={{ padding: 25 }}>
+        <div className="sm:w-[100vw] md:w-[99vw] lg:w-[99wv]" style={{ padding: 25 }}>
             {loading && (
-                <div className="flex justify-center items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                <div className="flex items-center justify-center">
+                    <div className="w-8 h-8 border-b-2 border-gray-900 rounded-full animate-spin"></div>
                     <div>Loading Pokemon</div>
                 </div>
             )}
             {!loading && pokemon && (
-            <div className="flex justify-center items-center min-h-screen w-full bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
-                <div className="max-w-md w-full p-8 rounded-lg shadow-lg bg-white flex flex-col items-center relative">
+            <div className="flex items-center justify-center w-full min-h-screen bg-gradient-to-br from-pokemon-red to-pokemon-yellow">
+                <div className="relative flex flex-col items-center w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
                     <button
                         onClick={() => setPokemon(null)}
                         style={{
@@ -74,9 +74,9 @@ function Pokeballs() {
                         alt={pokemon.name}
                         style={{ width: 140, height: 140, marginTop: 16 }}
                     />
-                    <h2 className="text-2xl font-bold mt-4 capitalize text-gray-900">{pokemon.name}</h2>
-                    <div className="mt-6 w-full px-2">
-                        <h3 className="font-semibold mb-2 text-gray-800">Base Stats:</h3>
+                    <h2 className="mt-4 text-2xl font-bold text-gray-900 capitalize">{pokemon.name}</h2>
+                    <div className="w-full px-2 mt-6">
+                        <h3 className="mb-2 font-semibold text-gray-800">Base Stats:</h3>
                         <ul className="text-left text-gray-700">
                             {pokemon.stats.map((stat) => (
                                 <li key={stat.stat.name}>
@@ -86,7 +86,7 @@ function Pokeballs() {
                         </ul>
                     </div>
                     <button
-                        className="mt-8 px-6 py-2 rounded bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-bold shadow hover:from-yellow-500 hover:to-yellow-700 transition"
+                        className="px-6 py-2 mt-8 font-bold text-black transition rounded shadow bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700"
                         onClick={() => setPokemon(null)}
                     >
                         Accept
@@ -95,8 +95,8 @@ function Pokeballs() {
             </div>
              )}
             {!loading && !pokemon && (
-                <div className='flex justify-center items-center mb-4'>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ">
+                <div className='flex items-center justify-center mb-4'>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 ">
                         <Button
                             type="submit" 
                             className="w-full mt-4 btn-primary"
