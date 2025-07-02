@@ -96,7 +96,7 @@ function Pokemon() {
         <main>
           <div className="flex justify-center mb-6">
             <button
-              className="px-4 py-2 rounded-lg btn-primary"
+              className="px-4 py-2 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-semibold"
               onClick={fetchPokemons}
             >
               Załaduj  pokemony
