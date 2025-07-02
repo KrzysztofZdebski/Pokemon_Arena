@@ -56,7 +56,7 @@ function PokemonCard({
       <div className="flex space-x-2">
         {buttonType === "train" ?
         <button
-          className="flex-1 btn-primary"
+          className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded"
           onClick={() => onTrain(pokemon.id)}
           disabled={isTraining || disabled}
         >

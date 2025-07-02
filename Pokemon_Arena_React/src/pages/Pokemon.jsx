@@ -85,7 +85,7 @@ function Pokemon() {
   }
 
   return (
-    <div className="w-screen min-h-screen bg-gradient-to-br from-pokemon-yellow to-pokemon-blue">
+      <div className="w-screen min-h-screen pt-28 bg-gradient-to-br from-pokemon-yellow to-pokemon-blue">
       <div className="container px-6 py-12 mx-auto">
         <header className="mb-16 text-center">
           <h1 className="mb-6 text-5xl font-bold text-white">
@@ -99,7 +99,7 @@ function Pokemon() {
               className="px-4 py-2 rounded-lg btn-primary"
               onClick={fetchPokemons}
             >
-              Odśwież pokemony
+              Załaduj  pokemony
             </button>
           </div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

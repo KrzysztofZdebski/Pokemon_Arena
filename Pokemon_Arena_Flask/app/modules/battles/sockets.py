@@ -224,55 +224,55 @@ def not_ready(data):
         return
     player.set_ready(False)
 
-# @socketio.on('choose_pokemon')
-# def choose_pokemon(data):
-#     """Handle choosing a Pokemon for the battle"""
-#     userID = request.sid
-#     player = get_player_by_session_id(userID, active_players)
-#     pokemon_id = data.get('pokemon_id')
-#     print(f'Player {player.username} ({userID}) is choosing Pokemon with ID: {pokemon_id}')
-#     print(data)
+@socketio.on('choose_pokemon')
+def choose_pokemon(data):
+    """Handle choosing a Pokemon for the battle"""
+    userID = request.sid
+    player = get_player_by_session_id(userID, active_players)
+    pokemon_id = data.get('pokemon_id')
+    print(f'Player {player.username} ({userID}) is choosing Pokemon with ID: {pokemon_id}')
+    print(data)
     
-#     if not player or not player.room_id:
-#         emit('error', {'message': 'You are not in an active game'})
-#         return
+    if not player or not player.room_id:
+        emit('error', {'message': 'You are not in an active game'})
+        return
     
-#     if not pokemon_id:
-#         emit('error', {'message': 'Pokemon ID is required'})
-#         return
+    if not pokemon_id:
+        emit('error', {'message': 'Pokemon ID is required'})
+        return
     
-#     # Fetch Pokemon data from the database
-#     pokemon = next((p for p in player.pokemon if p.get('id') == pokemon_id))
-#     # print(f'Pokemon chosen: {pokemon}')
-#     if not pokemon:
-#         emit('error', {'message': 'Pokemon not found'})
-#         return
+    # Fetch Pokemon data from the database
+    pokemon = next((p for p in player.pokemon if p.get('id') == pokemon_id))
+    # print(f'Pokemon chosen: {pokemon}')
+    if not pokemon:
+        emit('error', {'message': 'Pokemon not found'})
+        return
     
-#     player.select_pokemon(pokemon)
+    player.select_pokemon(pokemon)
     
-#     print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.get("name")}')
+    print(f'Player {player.username} ({userID}) chose Pokemon: {pokemon.get("name")}')
     
-#     opponent_id, opponent = find_opponent_in_room(userID, player.room_id)
-#     if not opponent:
-#         emit('error', {'message': 'Opponent not found in the room'})
-#         return
+    opponent_id, opponent = find_opponent_in_room(userID, player.room_id)
+    if not opponent:
+        emit('error', {'message': 'Opponent not found in the room'})
+        return
     
-#     if opponent.selected_pokemon:
-#         # If opponent has already selected a Pokemon, notify both players
-#         # time.sleep(2)
-#         emit('pokemon_prepared', {
-#             'message': f'{player.username} and {opponent.username} have chosen their Pokemon!',
-#             'pokemon': {
-#                 'player1' : {
-#                     'username': player.username,
-#                     'pokemon': player.selected_pokemon
-#                 },
-#                 'player2' : {
-#                     'username': opponent.username,
-#                     'pokemon': opponent.selected_pokemon
-#                 }
-#             }
-#         }, to=player.room_id)
+    if opponent.selected_pokemon:
+        # If opponent has already selected a Pokemon, notify both players
+        # time.sleep(2)
+        emit('pokemon_prepared', {
+            'message': f'{player.username} and {opponent.username} have chosen their Pokemon!',
+            'pokemon': {
+                'player1' : {
+                    'username': player.username,
+                    'pokemon': player.selected_pokemon
+                },
+                'player2' : {
+                    'username': opponent.username,
+                    'pokemon': opponent.selected_pokemon
+                }
+            }
+        }, to=player.room_id)
 
 @socketio.on('next_action')
 def next_action(data):
