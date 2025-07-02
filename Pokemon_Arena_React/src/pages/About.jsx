@@ -76,6 +76,48 @@ function About() {
             </div>
           </div>
 
+          <div className="mb-8 pokemon-card">
+            <h3 className="mb-6 text-2xl font-semibold">Art Credits</h3>
+            <p className="mb-6 text-lg text-gray-600 dark:text-gray-300">
+              We would like to thank the talented artists who created the beautiful artwork used in our game.
+            </p>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="text-center">
+                <div className="flex items-center justify-center w-20 h-20 mx-auto mb-4 text-3xl text-white rounded-full bg-pokemon-red">
+                  ⚪
+                </div>
+                <h4 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">
+                  Pokeball Artwork
+                </h4>
+                <a 
+                  href="https://www.deviantart.com/oykawoo/art/Pokeball-494307320" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-medium transition-colors text-pokemon-blue hover:text-pokemon-blue/80"
+                >
+                  by oykawoo on DeviantArt
+                </a>
+              </div>
+              
+              <div className="text-center">
+                <div className="flex items-center justify-center w-20 h-20 mx-auto mb-4 text-3xl text-white rounded-full bg-pokemon-blue">
+                  ⚪
+                </div>
+                <h4 className="mb-2 text-lg font-semibold text-gray-800 dark:text-white">
+                  Great Ball Artwork
+                </h4>
+                <a 
+                  href="https://www.deviantart.com/oykawoo/art/Great-Ball-494308740" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-medium transition-colors text-pokemon-blue hover:text-pokemon-blue/80"
+                >
+                  by oykawoo on DeviantArt
+                </a>
+              </div>
+            </div>
+          </div>
+
           <div className="pokemon-card">
             <h3 className="mb-6 text-2xl font-semibold">Meet the Developers</h3>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
