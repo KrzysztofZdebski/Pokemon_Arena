@@ -45,7 +45,7 @@ class RankingController:
             loser.add_coins(abs(loser_change) * coins_per_point-30)
 
         db.session.commit()
-        print("update_after_battle called", winner_id, loser_id)
+        print("update_after_battle called", winner_name, loser_name)
         return jsonify({
             'message': 'Ranking updated successfully!',
             'winner_new_ranking': winner.get_ranking(),

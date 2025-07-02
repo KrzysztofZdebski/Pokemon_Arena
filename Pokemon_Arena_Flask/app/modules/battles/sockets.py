@@ -488,30 +488,33 @@ def handle_move(action):
         return message
     
     messages = []
-    accuracy = move.get('accuracy', 100)
-    checkAcc = True
-    if accuracy is None:
-        checkAcc = False
-    print(f"Move accuracy: {accuracy}, Crit threshold: {crit_threshold}, Crit: {crit}")
+    try:
+        accuracy = move.get('accuracy', 100)
+        checkAcc = True
+        if accuracy is None:
+            checkAcc = False
+        print(f"Move accuracy: {accuracy}, Crit threshold: {crit_threshold}, Crit: {crit}")
 
-    if checkAcc and accuracy < random.randint(0, 100):
-        message = f"{userPokemon.get('name')} used {move_name}, but it missed!"
-        return message
+        if checkAcc and accuracy < random.randint(0, 100):
+            message = f"{userPokemon.get('name')} used {move_name}, but it missed!"
+            return message
 
-    move_type = move.get('type', {}).get('name')
-    target_types = [t['type'].get('name') for t in opponentPokemon['types']]
-    print(f"Calculating damage for move type: {move_type}, target types: {target_types}")
-    print(opponentPokemon['types'])
-    type_multiplier = damage_by_type(move_type, target_types)
-    random_multiplier = random.uniform(217, 255) / 255
+        move_type = move.get('type', {}).get('name')
+        target_types = [t['type'].get('name') for t in opponentPokemon['types']]
+        print(f"Calculating damage for move type: {move_type}, target types: {target_types}")
+        print(opponentPokemon['types'])
+        type_multiplier = damage_by_type(move_type, target_types)
+        random_multiplier = random.uniform(217, 255) / 255
 
-    damage = ((((((2 * level * crit / 5) + 2) * power * attack / defense) / 50) + 2)  * type_multiplier * random_multiplier)
-    damage = int(damage)
-    print(f"Damage calculated: {damage} (Crit: {crit}, Level: {level}, Power: {power}, Attack: {attack}, Defense: {defense}, Type Multiplier: {type_multiplier}, Random Multiplier: {random_multiplier})")
-    print(f"Move {move_name} PP remaining: {userPokemon['learned_moves'][move_index]['PP']}")
-    opponentPokemon['current_HP'] -= damage
-    if opponentPokemon['current_HP'] <= 0:
-        faint(opponentPokemon, find_opponent_in_room(user.user_id, user.room_id)[1])
+        damage = ((((((2 * level * crit / 5) + 2) * power * attack / defense) / 50) + 2)  * type_multiplier * random_multiplier)
+        damage = int(damage)
+        print(f"Damage calculated: {damage} (Crit: {crit}, Level: {level}, Power: {power}, Attack: {attack}, Defense: {defense}, Type Multiplier: {type_multiplier}, Random Multiplier: {random_multiplier})")
+        print(f"Move {move_name} PP remaining: {userPokemon['learned_moves'][move_index]['PP']}")
+        opponentPokemon['current_HP'] -= damage
+        if opponentPokemon['current_HP'] <= 0:
+            faint(opponentPokemon, find_opponent_in_room(user.user_id, user.room_id)[1])
+    except Exception as e:
+        print(f"Error calculating damage: {e}")
 
     if type_multiplier > 1:
         messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's super effective! It dealt {damage} damage!")
@@ -545,7 +548,7 @@ def faint(pokemon, player):
                 break
         print('winner_name ', winner_name, ' losser_name ',losser_name ) 
         handle_points(winner_name,losser_name)
-        
+
         emit('battle_end', {
             'message': f"{player.username} has no more Pokemon left! {player.username} has lost the battle!",
             'winner': find_opponent_in_room(player.user_id, player.room_id)[1].username
