@@ -183,6 +183,7 @@ def ready(data):
         pokemon_dict['learned_moves'] = get_moves(pokemon_dict['moves'])
         pokemon_dict['fainted'] = False
         pokemon_dict['status_list'] = []
+        pokemon_dict['block_move'] = False  # Used to block moves during a round
         pokemonData.append(pokemon_dict)
         
     player.set_pokemon(pokemonData)
@@ -365,7 +366,8 @@ def find_speed(action):
     user = get_player_by_session_id(action.get('user_id'), active_players)
     if not user or not user.selected_pokemon:
         return 0
-    speed = next(p.get("base_stat") for p in user.selected_pokemon['stats'] if p.get("stat").get("name") == 'speed')
+    speed = next(p.get("base_stat") for p in user.selected_pokemon['stats'] if p.get("stat").get("name") == 'speed') * (user.selected_pokemon.get('speed_modifier', 1) if user.selected_pokemon.get('speed_modifier') else 1)
+    print(f"Speed for {user.username}'s Pokemon: {speed}, modifier: {user.selected_pokemon.get('speed_modifier')}")
     return speed
 
 def handle_actions(actions_data):
@@ -431,8 +433,8 @@ def handle_move(action):
     # print(move)
     # print(power)
     if move.get('damage_class', {}).get('name') == 'physical':
-        attack = next(p.get("base_stat") for p in userPokemon['stats'] if p.get("stat").get("name") == 'attack')
-        defense = next(p.get("base_stat") for p in opponentPokemon['stats'] if p.get("stat").get("name") == 'defense')
+        attack = next(p.get("base_stat") for p in userPokemon['stats'] if p.get("stat").get("name") == 'attack') * (userPokemon.get('attack_modifier') if userPokemon.get('attack_modifier') else 1)
+        defense = next(p.get("base_stat") for p in opponentPokemon['stats'] if p.get("stat").get("name") == 'defense') * (userPokemon.get('defense_modifier') if userPokemon.get('defense_modifier') else 1)
     elif move.get('damage_class', {}).get('name') == 'special':
         attack = next(p.get("base_stat") for p in userPokemon['stats'] if p.get("stat").get("name") == 'special-attack')
         defense = next(p.get("base_stat") for p in opponentPokemon['stats'] if p.get("stat").get("name") == 'special-defense')
@@ -672,23 +674,42 @@ def apply_status_effects(move, target):
     move_name = move.get('name', 'Unknown Move')
     meta = move.get('meta', {})
     effect_entries = meta.get('ailment', {})
+    allowed = ['poison', 'burn', 'paralysis', 'sleep', 'confusion']
 
     if effect_entries:
-        # For now, return a generic message
         effect_name = effect_entries.get('name', 'Unknown effect')
-        if not effect_name or effect_name == 'none':
+        if not effect_name or effect_name == 'none' or effect_name not in allowed:
             return ""
         messages.append(f"{target.get('name')} is affected by {move_name}: {effect_name}")
+        if effect_name in target.get('status_list', []):
+            target['status_list'] = [s for s in target['status_list'] if s['name'] != effect_name]  # Remove existing status
+
         target['status_list'].append({
             'name': effect_name,
-            'duration': (1 if meta.get('min_turns') == None else random.randint(meta.get('min_turns', 1), meta.get('max_turns', 3))) # Random duration between min and max turns
+            'duration': effectDuration(effect_name),
         })
     return " ".join(messages) if messages else f"{target.get('name')} is unaffected by {move_name}."
     
+def effectDuration(effect_name):
+    if effect_name == 'poison':
+        return random.randint(2, 5)
+    elif effect_name == 'burn':
+        return random.randint(2, 5)
+    elif effect_name == 'paralysis':
+        return random.randint(1, 3)
+    elif effect_name == 'sleep':
+        return random.randint(1, 3)
+    elif effect_name == 'confusion':
+        return random.randint(1, 3)
+    return 1
+
 def handleStatusEffects(player):
     """Handle status effects at the end of each round"""
     print(f"Handling status effects for player {player.username}")
     for pokemon in player.pokemon:
+        pokemon['block_move'] = False  # Reset block move for the next round
+        pokemon['attack_modifier'] = 1.0  # Reset attack modifier for the next round
+        pokemon['speed_modifier'] = 1.0  # Reset speed modifier for the next round
         if pokemon.get('status_list'):
             print(f"Handling status list {pokemon.get('status_list')}")
             for status in pokemon['status_list']:
@@ -714,10 +735,34 @@ def handleStatusEffects(player):
                         }, to=player.room_id)
                     else:
                         pokemon['current_HP'] -= int(pokemon.get('max_HP', 0) / 16)
+                        pokemon['attack_modifier'] = 0.5
                         print(f"{pokemon.get('name')} is burned! DMG: {int(pokemon.get('max_HP', 0) / 16)}")
                         emit('receive_text', {
                             "message": {"text": f"{pokemon.get('name')} is burned! DMG: {int(pokemon.get('max_HP', 0) / 16)}", "username": "prof. Oak"}
                         }, to=player.room_id)
+                elif status['name'] == 'paralysis':
+                    if random.randint(0, 100) < 25:  # 25% chance to be unable to move
+                        pokemon['block_move'] = True
+                        print(f"{pokemon.get('name')} is paralyzed!")
+                        emit('receive_text', {
+                            "message": {"text": f"{pokemon.get('name')} is paralyzed!", "username": "prof. Oak"}
+                        }, to=player.room_id)
+                    pokemon['speed_modifier'] = 0.75
+                elif status['name'] == 'sleep':
+                    pokemon['block_move'] = True
+                    print(f"{pokemon.get('name')} is asleep!")
+                    emit('receive_text', {
+                        "message": {"text": f"{pokemon.get('name')} is asleep!", "username": "prof. Oak"}
+                    }, to=player.room_id)
+                elif status['name'] == 'confusion':
+                    if random.randint(0, 100) < 50:  # 50% chance to hurt itself
+                        damage = int(pokemon.get('max_HP', 0) / 8)
+                        pokemon['current_HP'] -= damage
+                        print(f"{pokemon.get('name')} is confused and hurt itself! DMG: {damage}")
+                        emit('receive_text', {
+                            "message": {"text": f"{pokemon.get('name')} is confused and hurt itself! DMG: {damage}", "username": "prof. Oak"}
+                        }, to=player.room_id)
+                        pokemon['block_move'] = True
                 # Add more status effects as needed
                 
                 # Decrease duration and remove if expired
