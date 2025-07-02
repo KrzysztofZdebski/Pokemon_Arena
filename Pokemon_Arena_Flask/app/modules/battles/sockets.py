@@ -5,13 +5,13 @@ import requests
 from app.extensions import socketio
 from flask import Flask, request
 from requests import get
-from app.db.models import Pokemon
+from app.db.models import Pokemon, User
 import time
 import json
 
 
 class Player:
-    def __init__(self, user_id, username):
+    def __init__(self, user_id, username, points=0):
         self.user_id = user_id
         self.username = username
         self.pokemon = None
@@ -19,6 +19,7 @@ class Player:
         self.room_id = None
         self.selected_pokemon = None
         self.next_action = None
+        self.points = points
 
     def set_pokemon(self, pokemon):
         self.pokemon = pokemon
@@ -106,7 +107,7 @@ def join_queue(data):
     if not waiting_players:
         # First player creates a room and waits
         room_id = generate_room_id()
-        player = Player(userID, username)
+        player = Player(userID, username, User.get_by_username(username).get_ranking())
         player.set_room_id(room_id)
         waiting_players[userID] = player
         print(f'Player {username} with ID {userID} created room {room_id} and is waiting')
@@ -114,7 +115,18 @@ def join_queue(data):
         emit('queue_status', {'message': f'{username} with ID {userID} joined the queue', 'room_id': room_id})
     else:
         # Second player joins - match found!
+        waiting_players[userID] = Player(userID, username)
         opponent_session_id, opponent_player = find_opponent(userID)
+        if not opponent_session_id:
+            # No suitable opponent found, add to waiting queue
+            room_id = generate_room_id()
+            player = Player(userID, username, User.get_by_username(username).get_ranking())
+            player.set_room_id(room_id)
+            waiting_players[userID] = player
+            print(f'Player {username} with ID {userID} created room {room_id} and is waiting')
+            join_room(room_id)
+            emit('queue_status', {'message': f'{username} with ID {userID} joined the queue', 'room_id': room_id})
+            return
         room_id = opponent_player.room_id
         
         # Create player object for the second player
@@ -282,16 +294,17 @@ def generate_room_id():
     return str(uuid.uuid4())
 
 def find_opponent(userID):
-    if userID not in waiting_players or len(waiting_players) <= 1:
-        # Brak przeciwnika
-        return None, None
+    # if userID not in waiting_players or len(waiting_players) <= 1:
+    #     # Brak przeciwnika
+    #     return None, None
 
-    my_player = waiting_players[userID]
+    my_player = get_player_by_session_id(userID, waiting_players)
     min_diff = float('inf')
     best_opponent_id = None
     best_opponent = None
 
     for session_id, player in waiting_players.items():
+        player = get_player_by_session_id(session_id, waiting_players)
         if session_id == userID:
             continue
         diff = abs(my_player.points - player.points)
@@ -701,8 +714,10 @@ def apply_status_effects(move, target):
         if not effect_name or effect_name == 'none' or effect_name not in allowed:
             return ""
         messages.append(f"{target.get('name')} is affected by {move_name}: {effect_name}")
-        if effect_name in target.get('status_list', []):
-            target['status_list'] = [s for s in target['status_list'] if s['name'] != effect_name]  # Remove existing status
+        print(f"Applying status effect: {effect_name}, status_list {target['status_list']}")
+        print()
+        if effect_name in list(map(lambda x: x.get('name'), target['status_list'])):
+            target['status_list'] = list(filter(lambda x: x['name'] != effect_name, target['status_list']))
 
         target['status_list'].append({
             'name': effect_name,
