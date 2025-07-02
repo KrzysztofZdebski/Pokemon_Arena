@@ -536,6 +536,16 @@ def faint(pokemon, player):
         }, to=player.room_id)
         player.select_pokemon(None)
     if len(list(filter(lambda x: not x['fainted'], player.pokemon))) == 0:
+        room_players = get_room_players(player.room_id)
+        losser_name = player.username
+        winner_name = ''
+        for p in room_players:
+            if p.username is not losser_name:
+                winner_name = p.username
+                break
+        print('winner_name ', winner_name, ' losser_name ',losser_name ) 
+        handle_points(winner_name,losser_name)
+        
         emit('battle_end', {
             'message': f"{player.username} has no more Pokemon left! {player.username} has lost the battle!",
             'winner': find_opponent_in_room(player.user_id, player.room_id)[1].username
