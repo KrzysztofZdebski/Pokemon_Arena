@@ -662,7 +662,12 @@ def get_moves(moves):
     """Extract moves from the Pokemon's moves list"""
     learned_moves = []
     for move in moves:
-        move_url = move['url']
+        if isinstance(move, dict) and 'url' in move:
+            move_url = move['url']
+        elif isinstance(move, str):
+            move_url = f'https://pokeapi.co/api/v2/move/{move}'
+        else:
+            continue
         response = requests.get(move_url)
         move_arr = response.json()
         move_arr['maxPP'] = move_arr['pp']
