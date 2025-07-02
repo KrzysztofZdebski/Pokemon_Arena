@@ -153,6 +153,19 @@ def join_queue(data):
         }, to=room_id)
         match_setup(room_id, opponent_session_id, userID)
 
+@socketio.on('leave_queue')
+def leave_queue(data):
+    userID = request.sid
+    print(f'User {userID} is trying to leave the queue')
+    
+    if userID in waiting_players:
+        player = waiting_players.pop(userID)
+        print(f'Player {player.username} ({userID}) left the queue')
+        emit('queue_status', {'message': f'{player.username} has left the queue'})
+    else:
+        print(f'User {userID} is not in the queue')
+        emit('error', {'message': 'You are not in the queue'})
+
 @socketio.on('send_text')
 def send_text(data):
     userID = request.sid

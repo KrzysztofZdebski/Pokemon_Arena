@@ -240,7 +240,7 @@ function PokemonCard({
                   </div>
                   
 
-                  {pokemon.moves && pokemon.moves.length > 0 && (
+                  {/* {pokemon.moves && pokemon.moves.length > 0 && (
                     <div>
                       <h3 className="mb-2 font-semibold text-gray-700 dark:text-gray-300">Moves:</h3>
                       <div className="grid grid-cols-2 gap-2">
@@ -251,7 +251,7 @@ function PokemonCard({
                         ))}
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
               ) : (
                 <p className="text-center text-gray-600 dark:text-gray-400">No stats available</p>

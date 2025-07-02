@@ -166,7 +166,7 @@ export default function Combat() {
                     {isWaitingForOpponent && (
                         <div className="flex flex-col items-center mt-4">
                             <div className="w-12 h-12 border-t-4 border-b-4 border-white rounded-full animate-spin"></div>
-                            <p className="mt-2 font-semibold text-white">Looking for an opponent...</p>
+                            <p className="mt-2 font-semibold text-white">Waiting for the opponent...</p>
                         </div>
                     )}
                 </div>
