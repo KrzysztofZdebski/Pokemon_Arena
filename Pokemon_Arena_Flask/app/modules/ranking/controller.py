@@ -25,9 +25,9 @@ class RankingController:
     
 
     @staticmethod
-    def update_after_battle(winner_id, loser_id):
-        winner = User.query.get(winner_id)
-        loser = User.query.get(loser_id)
+    def update_after_battle(winner_name, loser_name):
+        winner = User.get_by_username(winner_name)
+        loser = User.get_by_username(loser_name)
         if winner is None or loser is None:
             return jsonify({'message': 'User not found!'}), 404
 
@@ -42,9 +42,10 @@ class RankingController:
         if winner_change > 0:
             winner.add_coins(winner_change * coins_per_point)
         if loser_change < 0:
-            loser.remove_coins(abs(loser_change) * coins_per_point)
+            loser.add_coins(abs(loser_change) * coins_per_point-30)
 
         db.session.commit()
+        print("update_after_battle called", winner_id, loser_id)
         return jsonify({
             'message': 'Ranking updated successfully!',
             'winner_new_ranking': winner.get_ranking(),

@@ -22,7 +22,10 @@ class User(db.Model):
         return self.points
     
     def update_ranking(self, change):
-        self.points+=change
+        if self.points + change <0:
+            self.points = 0
+        else:
+            self.points+=change
 
     def set_ranking(self, points):
         self.points = points
@@ -31,7 +34,7 @@ class User(db.Model):
         return self.coins
 
     def add_coins(self, amount):
-        self.coins += amount
+        self.coins += max(amount,5)
 
     def set_coins(self, amount):
         self.coins = amount

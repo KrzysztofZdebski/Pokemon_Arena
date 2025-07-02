@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, current_user
 from flask_socketio import emit, join_room, leave_room, rooms, ConnectionRefusedError
 import requests
 from app.extensions import socketio
+from app.modules.ranking.controller import RankingController
 from flask import Flask, request
 from requests import get
 from app.db.models import Pokemon, User
@@ -91,7 +92,6 @@ def join_queue(data):
     print(f'User {username} is trying to join the queue')
     print('Current waiting players:', {sid: player.username for sid, player in waiting_players.items()})
     print('Current active players:', {sid: player.username for sid, player in active_players.items()})
-    
     if not username:
         emit('error', {'message': 'Username is required'})
         return
@@ -284,6 +284,17 @@ def handle_run(data):
     player = get_player_by_session_id(userID, active_players)
     print(f'Player {player.username} ({userID}) is trying to run from the battle {data}')
 
+    room_players = get_room_players(player.room_id)
+    losser_name = player.username
+    winner_name = ''
+    for p in room_players:
+        if p.username is not losser_name:
+            winner_name = p.username
+            break
+    print('winner_name ', winner_name, ' losser_name ',losser_name ) 
+    handle_points(winner_name,losser_name)
+    
+    
     emit('battle_end', {
         'message': f'{data.get("username")} has run from the battle!',
         'winner': data.get('opponent_username')
@@ -806,6 +817,10 @@ def handleStatusEffects(player):
                     pokemon['status_list'].remove(status)
                     print(f"{pokemon.get('name')} is no longer affected by {status['name']}.")
 
+
+def handle_points(winner_username,losser_username):
+    RankingController.update_after_battle(winner_username, losser_username)
+    
 
 class InvalidAction(Exception):
     """Custom exception for invalid actions in the battle"""
