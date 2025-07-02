@@ -28,3 +28,7 @@ pp z pokemonów tylko zmniejszone
 
 Osobny system rankingowy z odblokowywaniem kolejnych leveli 
 Do leveli będzie możliwosc odblokowywania kolejnych paczek itp. 
+
+Zdjęcia pokeball:
+ - pokeball: https://www.deviantart.com/oykawoo/art/Pokeball-494307320
+ - greatball: https://www.deviantart.com/oykawoo/art/Great-Ball-494308740
