@@ -445,6 +445,8 @@ def handle_move(action):
     
     userPokemon = user.selected_pokemon
     opponentPokemon = opponent.selected_pokemon
+    if not userPokemon or not opponentPokemon:
+        return ""
     
     move_list = list(map(lambda p: p.get("name"), userPokemon.get('learned_moves', [])))
     move_name = action.get('move')
@@ -513,16 +515,17 @@ def handle_move(action):
         opponentPokemon['current_HP'] -= damage
         if opponentPokemon['current_HP'] <= 0:
             faint(opponentPokemon, find_opponent_in_room(user.user_id, user.room_id)[1])
+
+        if type_multiplier > 1:
+            messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's super effective! It dealt {damage} damage!")
+        elif type_multiplier < 1:
+            messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's not very effective... It dealt {damage} damage!")
+        else:
+            messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It dealt {damage} damage!")
+        messages.append(apply_status_effects(move, opponentPokemon))
     except Exception as e:
         print(f"Error calculating damage: {e}")
 
-    if type_multiplier > 1:
-        messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's super effective! It dealt {damage} damage!")
-    elif type_multiplier < 1:
-        messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It's not very effective... It dealt {damage} damage!")
-    else:
-        messages.append(f"{userPokemon.get('name')} used {move_name} on {opponentPokemon.get('name')}! It dealt {damage} damage!")
-    messages.append(apply_status_effects(move, opponentPokemon))
 
     return " ".join(messages)
 
@@ -730,6 +733,9 @@ def apply_status_effects(move, target):
     messages = []
     move_name = move.get('name', 'Unknown Move')
     meta = move.get('meta', {})
+    if not meta:
+        print(f"No meta information found for move: {move_name}")
+        return f"{target.get('name')} is unaffected by {move_name}."
     effect_entries = meta.get('ailment', {})
     allowed = ['poison', 'burn', 'paralysis', 'sleep', 'confusion']
 
